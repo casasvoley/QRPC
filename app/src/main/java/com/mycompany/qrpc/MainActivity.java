@@ -5,6 +5,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.Manifest;
 import android.os.Build;
 import android.os.Bundle;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.google.android.gms.nearby.connection.ConnectionsClient;
 import com.google.android.gms.nearby.connection.Strategy;
@@ -79,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private int myScore;
     private GameChoice myChoice;
 
+    // Botones
     private Button findOpponentButton;
     private Button disconnectButton;
     private Button rockButton;
