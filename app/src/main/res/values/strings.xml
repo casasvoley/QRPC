@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">QRPC</string>
+
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_searching">Searching</string>
+    <string name="status_connected">Connected</string>
 </resources>
