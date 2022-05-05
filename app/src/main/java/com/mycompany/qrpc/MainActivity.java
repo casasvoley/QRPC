@@ -1,24 +1,39 @@
 package com.mycompany.qrpc;
 
+import static android.os.Build.VERSION_CODES.S;
+
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -32,6 +47,9 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
+import com.google.android.gms.tasks.CancellationTokenSource;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,8 +57,9 @@ public class MainActivity extends AppCompatActivity {
 
     // Permisos requeridos en función de la versión de Android del dispositivo
     private static final String[] REQUIRED_PERMISSIONS;
+
     static {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= S) {
             REQUIRED_PERMISSIONS =
                     new String[]{
                             Manifest.permission.BLUETOOTH_SCAN,
@@ -91,6 +110,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    // Constantes de ubicación
+    public static final int DEFAULT_UPDATE_INTERVAL = 10;
+    public static final int FASTEST_UPDATE_INTERVAL = 5;
+    private static final int PERMISSIONS_FINE_LOCATION = 99;
+
     // Cliente de conexión
     private ConnectionsClient connectionsClient;
 
@@ -118,6 +142,20 @@ public class MainActivity extends AppCompatActivity {
     private TextView opponentText;
     private TextView statusText;
     private TextView scoreText;
+    private TextView GPSText;
+
+    // UI elments
+    TextView tv_lat, tv_lon, tv_altitude, tv_accuracy, tv_speed, tv_sensor, tv_updates;
+    Switch sw_locationupdates, sw_gps;
+
+    // Location request
+    LocationRequest locationRequest;
+
+    // Location callback
+    LocationCallback locationCallback;
+
+    // Location provider client
+    FusedLocationProviderClient fusedLocationProviderClient;
 
     // Callbacks cuando se reciben payloads
     private final PayloadCallback payloadCallback =
@@ -138,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
     // Callbacks cuando se encuentran otros dispositivos
     private final EndpointDiscoveryCallback endpointDiscoveryCallback =
             new EndpointDiscoveryCallback() {
+                @RequiresApi(api = S)
                 @Override
                 public void onEndpointFound(@NonNull String endpointId, @NonNull DiscoveredEndpointInfo info) {
                     Log.i(TAG, "onEndpointFound: endpoint found, connecting");
@@ -145,7 +184,8 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onEndpointLost(@NonNull String endpointId) {}
+                public void onEndpointLost(@NonNull String endpointId) {
+                }
             };
 
     // Callbacks cuando se conecta a otros dsipositivos
@@ -182,6 +222,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             };
 
+    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
@@ -203,6 +244,35 @@ public class MainActivity extends AppCompatActivity {
         connectionsClient = Nearby.getConnectionsClient(this);
 
         resetGame();
+
+        // Initialize UI elements
+        tv_lat = findViewById(R.id.tv_lat);
+        tv_lon = findViewById(R.id.tv_lon);
+        tv_altitude = findViewById(R.id.tv_altitude);
+        tv_accuracy = findViewById(R.id.tv_accuracy);
+        tv_speed = findViewById(R.id.tv_speed);
+        tv_updates = findViewById(R.id.tv_updates);
+
+        // Set properties of LocationRequest
+        locationRequest = LocationRequest.create();
+        locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVAL);
+        locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVAL);
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+        // Triggers when the location interval is met
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+
+                // Update location
+                updateUIValues(locationResult.getLastLocation());
+            }
+        };
+
+        updateGPS();
+
+        startLocationUpdates();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.M)
@@ -213,6 +283,8 @@ public class MainActivity extends AppCompatActivity {
         if (!hasPermissions(this, REQUIRED_PERMISSIONS)) {
             requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
         }
+
+
     }
 
     @Override
@@ -378,5 +450,60 @@ public class MainActivity extends AppCompatActivity {
     // Actualiza el marcador
     private void updateScore(int myScore, int opponentScore) {
         scoreText.setText(getString(R.string.game_score, myScore, opponentScore));
+    }
+
+    // Update UI values
+    private void updateUIValues(Location location) {
+        tv_lat.setText(String.valueOf(location.getLatitude()));
+        tv_lon.setText(String.valueOf(location.getLongitude()));
+        tv_accuracy.setText(String.valueOf(location.getAccuracy()));
+
+        if (location.hasAltitude()) {
+            tv_altitude.setText(String.valueOf(location.getAltitude()));
+        } else {
+            tv_altitude.setText("Not available");
+        }
+
+        if (location.hasSpeed()) {
+            tv_speed.setText(String.valueOf(location.getSpeed()));
+        } else {
+            tv_speed.setText("Not available");
+        }
+    }
+
+    // Request permissions, get location and update UI
+    private void updateGPS() {
+        // Get permissions if the app does not have them already
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            // We have the permissions: get location
+            fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    // Update UI
+                    updateUIValues(location);
+                }
+            });
+        } else {
+            // We do not have the permissions
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions( new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
+            }
+        }
+
+    }
+
+    // Start location tracking
+    private void startLocationUpdates() {
+        tv_updates.setText("Location is being tracked");
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // We do not have the permissions
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions( new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
+            }
+        }
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
+        updateGPS();
     }
 }

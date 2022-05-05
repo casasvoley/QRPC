@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_margin="16dp"
@@ -16,6 +17,110 @@
   <TextView
       android:id="@+id/status"
       style="@style/StatusText"/>
+
+  <TextView
+      android:id="@+id/tv_labellat"
+      android:layout_width="100dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="32dp"
+      android:text="Lat:"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/status" />
+
+  <TextView
+      android:id="@+id/tv_lat"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="32dp"
+      android:text="0.00"
+      app:layout_constraintStart_toEndOf="@+id/tv_labellat"
+      app:layout_constraintTop_toTopOf="parent" />
+
+  <TextView
+      android:id="@+id/tv_labellon"
+      android:layout_width="100dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:text="lon:"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/tv_labellat" />
+
+  <TextView
+      android:id="@+id/tv_lon"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:text="0.00"
+      app:layout_constraintStart_toEndOf="@+id/tv_labellon"
+      app:layout_constraintTop_toBottomOf="@+id/tv_lat" />
+
+  <TextView
+      android:id="@+id/tv_labelaltitude"
+      android:layout_width="100dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:text="Altitude:"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/tv_labellon" />
+
+  <TextView
+      android:id="@+id/tv_altitude"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="0.00"
+      app:layout_constraintStart_toEndOf="@+id/tv_labelaltitude"
+      app:layout_constraintTop_toTopOf="@+id/tv_labelaltitude" />
+
+  <TextView
+      android:id="@+id/tv_labelaccuracy"
+      android:layout_width="100dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:text="Accuracy:"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/tv_labelaltitude" />
+
+  <TextView
+      android:id="@+id/tv_accuracy"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="0.00"
+      app:layout_constraintStart_toEndOf="@+id/tv_labelaccuracy"
+      app:layout_constraintTop_toTopOf="@+id/tv_labelaccuracy" />
+
+  <TextView
+      android:id="@+id/tv_labelspeed"
+      android:layout_width="100dp"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="16dp"
+      android:text="Speed:"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/tv_labelaccuracy" />
+
+  <TextView
+      android:id="@+id/tv_speed"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="0.00"
+      app:layout_constraintStart_toEndOf="@+id/tv_labelspeed"
+      app:layout_constraintTop_toTopOf="@+id/tv_labelspeed" />
+
+  <TextView
+      android:id="@+id/tv_labelupdates"
+      android:layout_width="100dp"
+      android:layout_height="wrap_content"
+      android:text="Updates:"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/sw_locationsupdates" />
+
+  <TextView
+      android:id="@+id/tv_updates"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="Location is NOT being tracked"
+      app:layout_constraintStart_toEndOf="@+id/tv_labelupdates"
+      app:layout_constraintTop_toTopOf="@+id/tv_labelupdates" />
+
 
   <TextView
       android:id="@+id/score"
