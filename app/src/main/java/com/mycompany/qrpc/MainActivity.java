@@ -2,30 +2,23 @@ package com.mycompany.qrpc;
 
 import static android.os.Build.VERSION_CODES.S;
 
+import static com.mycompany.qrpc.SerializationHelper.deserialize;
+import static com.mycompany.qrpc.SerializationHelper.serialize;
+
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Criteria;
-import android.location.Location;
-import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,6 +27,8 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import android.location.Location;
+
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
@@ -47,9 +42,11 @@ import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
-import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -97,19 +94,6 @@ public class MainActivity extends AppCompatActivity {
     // Estrategia de conexión
     private static final Strategy STRATEGY = Strategy.P2P_CLUSTER;
 
-    // Elección en el juego
-    private enum GameChoice {
-        ROCK,
-        PAPER,
-        SCISSORS;
-
-        boolean beats(GameChoice other) {
-            return (this == GameChoice.ROCK && other == GameChoice.SCISSORS)
-                    || (this == GameChoice.SCISSORS && other == GameChoice.PAPER)
-                    || (this == GameChoice.PAPER && other == GameChoice.ROCK);
-        }
-    }
-
     // Constantes de ubicación
     public static final int DEFAULT_UPDATE_INTERVAL = 10;
     public static final int FASTEST_UPDATE_INTERVAL = 5;
@@ -118,35 +102,23 @@ public class MainActivity extends AppCompatActivity {
     // Cliente de conexión
     private ConnectionsClient connectionsClient;
 
-    // Nombre código del jugador
-    private final String codeName = CodenameGenerator.generate();
+    // Id del dispositivo
+    private final String id = CodenameGenerator.generate();
 
     // Datos del oponente
     private String opponentEndpointId;
     private String opponentName;
-    private int opponentScore;
-    private GameChoice opponentChoice;
-
-    // Datos del jugador
-    private int myScore;
-    private GameChoice myChoice;
 
     // Botones
     private Button findOpponentButton;
     private Button disconnectButton;
-    private Button rockButton;
-    private Button paperButton;
-    private Button scissorsButton;
 
     // Textviews
     private TextView opponentText;
     private TextView statusText;
-    private TextView scoreText;
-    private TextView GPSText;
 
-    // UI elments
-    TextView tv_lat, tv_lon, tv_altitude, tv_accuracy, tv_speed, tv_sensor, tv_updates;
-    Switch sw_locationupdates, sw_gps;
+    // UI elements
+    TextView tv_lat, tv_lon, tv_altitude,  tv_speed;
 
     // Location request
     LocationRequest locationRequest;
@@ -162,29 +134,48 @@ public class MainActivity extends AppCompatActivity {
             new PayloadCallback() {
                 @Override
                 public void onPayloadReceived(@NonNull String endpointId, Payload payload) {
-                    opponentChoice = GameChoice.valueOf(new String(payload.asBytes(), UTF_8));
+                    try {
+                        Log.i(TAG,"onPayloadReceived: Paquete recibido");
+
+                        // Tranformamos el map recibido en un objeto de la clase Location
+                        Map<String, Double> targetCoordinates = (HashMap<String, Double>) deserialize(payload.asBytes());
+                        Location targetLocation = new Location("provider");
+                        targetLocation.setLongitude(targetCoordinates.get("longitude"));
+                        targetLocation.setLatitude(targetCoordinates.get("latitude"));
+                        targetLocation.setBearing(targetCoordinates.get("bearing").floatValue());
+                        targetLocation.setSpeed(targetCoordinates.get("longitude").floatValue());
+
+                        // Actualizamos la UI
+                        updateUIValues(targetLocation);
+                    } catch (IOException | ClassNotFoundException e) {
+                        Log.e(TAG, "onPayloadReceived: Error al deserializar el paquete recibido");
+                    }
+
                 }
 
                 @Override
-                public void onPayloadTransferUpdate(@NonNull String endpointId, PayloadTransferUpdate update) {
-                    if (update.getStatus() == PayloadTransferUpdate.Status.SUCCESS && myChoice != null && opponentChoice != null) {
-                        finishRound();
-                    }
+                public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
+
                 }
             };
+
+
 
     // Callbacks cuando se encuentran otros dispositivos
     private final EndpointDiscoveryCallback endpointDiscoveryCallback =
             new EndpointDiscoveryCallback() {
-                @RequiresApi(api = S)
+
                 @Override
                 public void onEndpointFound(@NonNull String endpointId, @NonNull DiscoveredEndpointInfo info) {
-                    Log.i(TAG, "onEndpointFound: endpoint found, connecting");
-                    connectionsClient.requestConnection(codeName, endpointId, connectionLifecycleCallback);
+                    Log.i(TAG, "onEndpointFound: Punto de conexión encontrado");
+
+                    // Pedimos conectar al ppunto de conexión encontrado
+                    connectionsClient.requestConnection(id, endpointId, connectionLifecycleCallback);
                 }
 
                 @Override
                 public void onEndpointLost(@NonNull String endpointId) {
+
                 }
             };
 
@@ -193,15 +184,17 @@ public class MainActivity extends AppCompatActivity {
             new ConnectionLifecycleCallback() {
                 @Override
                 public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo connectionInfo) {
-                    Log.i(TAG, "onConnectionInitiated: accepting connection");
+                    // Aceptamos la conexión
+                    Log.i(TAG, "onConnectionInitiated: Aceptando conexión");
                     connectionsClient.acceptConnection(endpointId, payloadCallback);
                     opponentName = connectionInfo.getEndpointName();
                 }
 
                 @Override
                 public void onConnectionResult(@NonNull String endpointId, ConnectionResolution result) {
+                    // Si la conexión se establece
                     if (result.getStatus().isSuccess()) {
-                        Log.i(TAG, "onConnectionResult: connection successful");
+                        Log.i(TAG, "onConnectionResult: Conexión establecida");
 
                         connectionsClient.stopDiscovery();
                         connectionsClient.stopAdvertising();
@@ -210,78 +203,92 @@ public class MainActivity extends AppCompatActivity {
                         setOpponentName(opponentName);
                         setStatusText(getString(R.string.status_connected));
                         setButtonState(true);
+
+                    // Si la conexión falla
                     } else {
-                        Log.i(TAG, "onConnectionResult: connection failed");
+                        Log.i(TAG, "onConnectionResult: Conexión fallida");
                     }
                 }
 
                 @Override
                 public void onDisconnected(@NonNull String endpointId) {
-                    Log.i(TAG, "onDisconnected: disconnected from the opponent");
-                    resetGame();
+                    Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
+                    resetGUI();
                 }
             };
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         setContentView(R.layout.activity_main);
 
+        // Guardamos los elementos de la UI
         findOpponentButton = findViewById(R.id.find_opponent);
         disconnectButton = findViewById(R.id.disconnect);
-        rockButton = findViewById(R.id.rock);
-        paperButton = findViewById(R.id.paper);
-        scissorsButton = findViewById(R.id.scissors);
 
         opponentText = findViewById(R.id.opponent_name);
         statusText = findViewById(R.id.status);
-        scoreText = findViewById(R.id.score);
 
         TextView nameView = findViewById(R.id.name);
-        nameView.setText(getString(R.string.codename, codeName));
+        nameView.setText(getString(R.string.codename, id));
 
-        connectionsClient = Nearby.getConnectionsClient(this);
-
-        resetGame();
-
-        // Initialize UI elements
         tv_lat = findViewById(R.id.tv_lat);
         tv_lon = findViewById(R.id.tv_lon);
         tv_altitude = findViewById(R.id.tv_altitude);
-        tv_accuracy = findViewById(R.id.tv_accuracy);
         tv_speed = findViewById(R.id.tv_speed);
-        tv_updates = findViewById(R.id.tv_updates);
 
-        // Set properties of LocationRequest
+        // Creamos un cliente de conexiones
+        connectionsClient = Nearby.getConnectionsClient(this);
+
+        resetGUI();
+
+        // Establecemos las propiedades de las peticiones de unicación (LocalizationRequest)
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVAL);
         locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVAL);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
-        // Triggers when the location interval is met
+        // Callback que se ejecuta cuando el dispositivo recibe una actualización de su ubicación
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(@NonNull LocationResult locationResult) {
                 super.onLocationResult(locationResult);
 
-                // Update location
-                updateUIValues(locationResult.getLastLocation());
+                Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente");
+
+                // Enviamos nuestra ubicación como un Map
+                Location location = locationResult.getLastLocation();
+                Map<String,Double> coordinates = new HashMap<>();
+                coordinates.put("longitude",location.getLongitude());
+                coordinates.put("latitude",location.getLatitude());
+                coordinates.put("bearing",(double)location.getBearing());
+                coordinates.put("speed",(double)location.getSpeed());
+                try {
+                    connectionsClient.sendPayload(
+                            opponentEndpointId, Payload.fromBytes(serialize(coordinates)));
+                    Log.i(TAG,"onLocationResult: Location package sent");
+                } catch (IOException e) {
+                    Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+                }
+
             }
         };
 
-        updateGPS();
+        // Creamos un cliente del proveedor de ubicación
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
 
+        // Iniciamos las actualizaciones de ubicación
         startLocationUpdates();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onStart() {
         super.onStart();
 
         if (!hasPermissions(this, REQUIRED_PERMISSIONS)) {
-            requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
+            }
         }
 
 
@@ -290,7 +297,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         connectionsClient.stopAllEndpoints();
-        resetGame();
+        resetGUI();
 
         super.onStop();
     }
@@ -320,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
         int i = 0;
         for (int grantResult : grantResults) {
             if (grantResult == PackageManager.PERMISSION_DENIED) {
-                Log.i(TAG, "Failed to request the permission " + permissions[i]);
+                Log.i(TAG, "onRequestPermissionsResult: No se pudo obtener el permiso " + permissions[i]);
                 Toast.makeText(this, R.string.error_missing_permissions, Toast.LENGTH_LONG).show();
                 finish();
                 return;
@@ -330,32 +337,21 @@ public class MainActivity extends AppCompatActivity {
         recreate();
     }
 
-    // Encontrar oponente
-    public void findOpponent(View view) {
+    // Encontrar objetivo
+    public void findEndpoint(View view) {
         startAdvertising();
         startDiscovery();
         setStatusText(getString(R.string.status_searching));
         findOpponentButton.setEnabled(false);
     }
 
-    // Desconectarse del oponenete y reiniciar la GUI
+    // Desconectarse del objetivo y reiniciar la UI
     public void disconnect(View view) {
         connectionsClient.disconnectFromEndpoint(opponentEndpointId);
-        resetGame();
+        resetGUI();
     }
 
-    // Envía una elección {@link GameChoice} al otro jugador
-    public void makeMove(View view) {
-        if (view.getId() == R.id.rock) {
-            sendGameChoice(GameChoice.ROCK);
-        } else if (view.getId() == R.id.paper) {
-            sendGameChoice(GameChoice.PAPER);
-        } else if (view.getId() == R.id.scissors) {
-            sendGameChoice(GameChoice.SCISSORS);
-        }
-    }
-
-    // Iniciar descubrimiento de jugadores
+    // Iniciar descubrimiento de dispositivos objetivos
     private void startDiscovery() {
         // Note: Discovery may fail. To keep this demo simple, we don't handle failures.
         connectionsClient.startDiscovery(
@@ -367,58 +363,24 @@ public class MainActivity extends AppCompatActivity {
     private void startAdvertising() {
         // Note: Advertising may fail. To keep this demo simple, we don't handle failures.
         connectionsClient.startAdvertising(
-                codeName, getPackageName(), connectionLifecycleCallback,
+                id, getPackageName(), connectionLifecycleCallback,
                 new AdvertisingOptions.Builder().setStrategy(STRATEGY).build());
     }
 
     // Elimina el estado del juego y actualiza la GUI en consecuencia
-    private void resetGame() {
+    private void resetGUI() {
         opponentEndpointId = null;
         opponentName = null;
-        opponentChoice = null;
-        opponentScore = 0;
-        myChoice = null;
-        myScore = 0;
+
+        tv_lon.setText("0.0");
+        tv_lat.setText("0.0");
+        tv_altitude.setText("0.0");
+        tv_speed.setText("0.0");
+
 
         setOpponentName(getString(R.string.no_opponent));
         setStatusText(getString(R.string.status_disconnected));
-        updateScore(myScore, opponentScore);
         setButtonState(false);
-    }
-
-    // Envía la selección del usuario (piedra, papel o tijeras) al otro jugador
-    private void sendGameChoice(GameChoice choice) {
-        myChoice = choice;
-        connectionsClient.sendPayload(
-                opponentEndpointId, Payload.fromBytes(choice.name().getBytes(UTF_8)));
-
-        setStatusText(getString(R.string.game_choice, choice.name()));
-        // No changing your mind!
-        setGameChoicesEnabled(false);
-    }
-
-    // Determina el vencedor de la ronda y actualiza la GUI y el estado del juego
-    private void finishRound() {
-        if (myChoice.beats(opponentChoice)) {
-            // Win!
-            setStatusText(getString(R.string.win_message, myChoice.name(), opponentChoice.name()));
-            myScore++;
-        } else if (myChoice == opponentChoice) {
-            // Tie, same choice by both players
-            setStatusText(getString(R.string.tie_message, myChoice.name()));
-        } else {
-            // Loss
-            setStatusText(getString(R.string.loss_message, myChoice.name(), opponentChoice.name()));
-            opponentScore++;
-        }
-
-        myChoice = null;
-        opponentChoice = null;
-
-        updateScore(myScore, opponentScore);
-
-        // Ready for another round
-        setGameChoicesEnabled(true);
     }
 
     // Activa y desactiva los botones de la GUI en función del estado de la conexión
@@ -426,15 +388,6 @@ public class MainActivity extends AppCompatActivity {
         findOpponentButton.setEnabled(true);
         findOpponentButton.setVisibility(connected ? View.GONE : View.VISIBLE);
         disconnectButton.setVisibility(connected ? View.VISIBLE : View.GONE);
-
-        setGameChoicesEnabled(connected);
-    }
-
-    // Activa y desactiva los botones de piedra, papel y tijeras
-    private void setGameChoicesEnabled(boolean enabled) {
-        rockButton.setEnabled(enabled);
-        paperButton.setEnabled(enabled);
-        scissorsButton.setEnabled(enabled);
     }
 
     // Muestra al usuario un mensaje de estado
@@ -447,19 +400,13 @@ public class MainActivity extends AppCompatActivity {
         opponentText.setText(getString(R.string.opponent_name, opponentName));
     }
 
-    // Actualiza el marcador
-    private void updateScore(int myScore, int opponentScore) {
-        scoreText.setText(getString(R.string.game_score, myScore, opponentScore));
-    }
-
-    // Update UI values
+    // Actualiza los valores de la UI
     private void updateUIValues(Location location) {
         tv_lat.setText(String.valueOf(location.getLatitude()));
         tv_lon.setText(String.valueOf(location.getLongitude()));
-        tv_accuracy.setText(String.valueOf(location.getAccuracy()));
 
-        if (location.hasAltitude()) {
-            tv_altitude.setText(String.valueOf(location.getAltitude()));
+        if (location.hasBearing()) {
+            tv_altitude.setText(String.valueOf(location.getBearing()));
         } else {
             tv_altitude.setText("Not available");
         }
@@ -474,7 +421,7 @@ public class MainActivity extends AppCompatActivity {
     // Request permissions, get location and update UI
     private void updateGPS() {
         // Get permissions if the app does not have them already
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+
 
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             // We have the permissions: get location
@@ -482,7 +429,9 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(Location location) {
                     // Update UI
-                    updateUIValues(location);
+                    // updateUIValues(location);
+
+
                 }
             });
         } else {
@@ -496,13 +445,16 @@ public class MainActivity extends AppCompatActivity {
 
     // Start location tracking
     private void startLocationUpdates() {
-        tv_updates.setText("Location is being tracked");
+        Log.i(TAG,"startLocationUpdates: Iniciando las actualizaciones de ubicación");
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // We do not have the permissions
+            // Pedimos los permisos ya que no los tenemos
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions( new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
             }
         }
+
+        // Activamos las actualizaciones de ubicación
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
         updateGPS();
     }
