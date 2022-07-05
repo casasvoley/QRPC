@@ -19,6 +19,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -108,12 +110,18 @@ public class MainActivity extends AppCompatActivity {
     private ConnectionsClient connectionsClient;
 
     // Botones
-    private Button findOpponentButton;
+    private Button connectButton;
     private Button disconnectButton;
 
     // Textviews
     private TextView opponentText;
     private TextView statusText;
+
+    // ScrollView
+    private ScrollView scrollview;
+
+    // LinearLayout
+    private LinearLayout linearlayout;
 
     // UI elements
     TextView tv_lat, tv_lon, tv_altitude,  tv_speed;
@@ -121,26 +129,17 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.main_layout);
 
         // Instanciamos módulos de GPS y de comunicaciones
         communicationModule = new CommunicationModule(this);
         gpsModule = new GPSModule(this, communicationModule);
 
         // Guardamos los elementos de la UI
-        findOpponentButton = findViewById(R.id.find_opponent);
+        connectButton = findViewById(R.id.connect);
         disconnectButton = findViewById(R.id.disconnect);
-
-        opponentText = findViewById(R.id.opponent_name);
-        statusText = findViewById(R.id.status);
-
-        TextView nameView = findViewById(R.id.name);
-        nameView.setText(getString(R.string.codename, communicationModule.getId()));
-
-        tv_lat = findViewById(R.id.tv_lat);
-        tv_lon = findViewById(R.id.tv_lon);
-        tv_altitude = findViewById(R.id.tv_altitude);
-        tv_speed = findViewById(R.id.tv_speed);
+        scrollview = findViewById(R.id.scroll_view);
+        linearlayout = findViewById(R.id.linear_layout);
 
         UIModule.resetGUI(this);
     }
@@ -154,6 +153,10 @@ public class MainActivity extends AppCompatActivity {
                 requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
             }
         }
+
+
+
+
     }
 
     @Override
@@ -199,9 +202,9 @@ public class MainActivity extends AppCompatActivity {
         recreate();
     }
 
-    public void findEndpoint(View view){
+    public void connect(View view){
         Log.i(TAG, "Comunicación activada");
-        communicationModule.findEndpoint();
+        communicationModule.connect();
     }
 
     public void disconnect(View view){

@@ -19,6 +19,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.nearby.connection.Payload;
 
 import java.io.IOException;
@@ -46,6 +47,9 @@ public class GPSModule {
     // Actividad principal
     Activity activity;
 
+    // Ubicación actual
+    private Location currentLocation;
+
     // Constructor
     public GPSModule(Activity activity, CommunicationModule communicationModule) {
         this.activity = activity;
@@ -54,7 +58,7 @@ public class GPSModule {
         locationRequest = LocationRequest.create();
         locationRequest.setInterval(1000 * DEFAULT_UPDATE_INTERVAL);
         locationRequest.setFastestInterval(1000 * FASTEST_UPDATE_INTERVAL);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setPriority(Priority.PRIORITY_HIGH_ACCURACY);
 
         // Callback que se ejecuta cuando el dispositivo recibe una actualización de su ubicación
         locationCallback = new LocationCallback() {
@@ -65,12 +69,12 @@ public class GPSModule {
                 Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente");
 
                 // Enviamos nuestra ubicación como un Map
-                Location location = locationResult.getLastLocation();
+                currentLocation = locationResult.getLastLocation();
                 Map<String,Double> coordinates = new HashMap<>();
-                coordinates.put("longitude",location.getLongitude());
-                coordinates.put("latitude",location.getLatitude());
-                coordinates.put("bearing",(double)location.getBearing());
-                coordinates.put("speed",(double)location.getSpeed());
+                coordinates.put("longitude",currentLocation.getLongitude());
+                coordinates.put("latitude",currentLocation.getLatitude());
+                coordinates.put("bearing",(double)currentLocation.getBearing());
+                coordinates.put("speed",(double)currentLocation.getSpeed());
                 try {
                     communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
                 } catch (IOException e) {

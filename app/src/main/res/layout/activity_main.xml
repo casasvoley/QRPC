@@ -114,7 +114,7 @@
       android:layout_width="match_parent"
       android:layout_height="wrap_content"
       android:onClick="findEndpoint"
-      android:text="@string/action_find_opponents"
+      android:text="Find opponent"
       style="@style/Widget.AppCompat.Button.Colored"/>
 
   <Button

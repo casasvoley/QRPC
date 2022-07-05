@@ -8,6 +8,7 @@ import android.location.Location;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -27,8 +28,10 @@ import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class CommunicationModule {
 
@@ -46,9 +49,8 @@ public class CommunicationModule {
     // Estrategia de conexión
     private static final Strategy STRATEGY = Strategy.P2P_CLUSTER;
 
-    // Datos del oponente
-    private String opponentEndpointId;
-    private String opponentName;
+    // Datos de las conexiones
+    private ArrayList<Endpoint> endpoints;
 
     // Actividad principal
     private Activity activity;
@@ -60,26 +62,36 @@ public class CommunicationModule {
                 @Override
                 public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo connectionInfo) {
                     // Aceptamos la conexión
-                    Log.i(TAG, "onConnectionInitiated: Aceptando conexión");
+                    Log.i(TAG, "onConnectionInitiated: Aceptando conexión de");
                     connectionsClient.acceptConnection(endpointId, payloadCallback);
-                    opponentName = connectionInfo.getEndpointName();
                 }
 
                 @Override
                 public void onConnectionResult(@NonNull String endpointId, ConnectionResolution result) {
                     // Si la conexión se establece
                     if (result.getStatus().isSuccess()) {
+
                         Log.i(TAG, "onConnectionResult: Conexión establecida");
 
-                        connectionsClient.stopDiscovery();
-                        connectionsClient.stopAdvertising();
+                        LinearLayout ll_endpoint = new LinearLayout(activity);
+                        ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
+                        TextView lon = new TextView(activity);
+                        lon.setText("Lon: 0");
+                        ll_endpoint.addView(lon);
+                        TextView lat = new TextView(activity);
+                        lat.setText("Lat: 0");
+                        ll_endpoint.addView(lat);
+                        TextView bear = new TextView(activity);
+                        bear.setText("Bear: 0");
+                        ll_endpoint.addView(bear);
+                        TextView sp = new TextView(activity);
+                        sp.setText("Sp: 0");
+                        ll_endpoint.addView(sp);
 
-                        opponentEndpointId = endpointId;
-                        UIModule.setOpponentText(activity, activity.getString(R.string.opponent_name, opponentName));
-                        UIModule.setStatusText(activity, activity.getString(R.string.status_connected));
-                        UIModule.setButtonState(activity, true);
+                        UIModule.addEndpointLayout(activity, ll_endpoint);
 
-                        // Si la conexión falla
+                        endpoints.add(new Endpoint(endpointId, ll_endpoint));
+                    // Si la conexión falla
                     } else {
                         Log.i(TAG, "onConnectionResult: Conexión fallida");
                     }
@@ -88,9 +100,15 @@ public class CommunicationModule {
                 @Override
                 public void onDisconnected(@NonNull String endpointId) {
                     Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
-                    opponentEndpointId = null;
-                    opponentName = null;
-                    UIModule.resetGUI(activity);
+                    LinearLayout ll = null;
+                    for (Endpoint e : endpoints){
+                        if (e.getId().equals(endpointId)){
+                            ll = e.getLinearlayout();
+                        }
+                    }
+                    if (ll != null){
+                        UIModule.removeEndpointLayout(activity,ll);
+                    }
                 }
             };
 
@@ -111,7 +129,16 @@ public class CommunicationModule {
                         targetLocation.setSpeed(targetCoordinates.get("longitude").floatValue());
 
                         // Actualizamos la UI
-                        UIModule.updateUIValues(activity,targetLocation);
+                        LinearLayout ll = null;
+                        for (Endpoint e : endpoints){
+                            if (e.getId().equals(endpointId)){
+                                ll = e.getLinearlayout();
+                            }
+                        }
+                        if (ll != null){
+                            UIModule.updateEndpointLayout(activity,ll,targetLocation);
+                        }
+
                     } catch (IOException | ClassNotFoundException e) {
                         Log.e(TAG, "onPayloadReceived: Error al deserializar el paquete recibido");
                     }
@@ -148,6 +175,7 @@ public class CommunicationModule {
 
         packageName = activity.getPackageName();
         this.activity = activity;
+        this.endpoints = new ArrayList<Endpoint>();
     }
 
     // Iniciar anuncios de nuestra presencia
@@ -159,16 +187,23 @@ public class CommunicationModule {
     }
 
     // Encontrar objetivo
-    public void findEndpoint() {
-        startAdvertising();
-        startDiscovery();
-        UIModule.setStatusText(activity, activity.getString(R.string.status_searching));
-        UIModule.enableFindOpponentButton(activity, false);
+    public void connect() {
+        connectionsClient.startAdvertising(
+                id, packageName, connectionLifecycleCallback,
+                new AdvertisingOptions.Builder().setStrategy(STRATEGY).build());
+        connectionsClient.startDiscovery(
+                activity.getPackageName(), endpointDiscoveryCallback,
+                new DiscoveryOptions.Builder().setStrategy(STRATEGY).build());
+
+        UIModule.setButtonState(activity, true);
     }
 
     // Desconectarse del objetivo y reiniciar la UI
     public void disconnect() {
-        connectionsClient.disconnectFromEndpoint(opponentEndpointId);
+        connectionsClient.stopAllEndpoints();
+        connectionsClient.stopAdvertising();
+        connectionsClient.stopDiscovery();
+
         UIModule.resetGUI(activity);
     }
 
@@ -181,9 +216,10 @@ public class CommunicationModule {
     }
 
     public void sendPayload(Payload payload){
+        //CAMBIAR ID!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         connectionsClient.sendPayload(
-                opponentEndpointId, payload);
-        Log.i(TAG,"onLocationResult: Location package sent");
+                "34", payload);
+        Log.i(TAG,"onLocationResult: Ubicación enviada");
     }
 
     // Devuelve la id del dispositivo
