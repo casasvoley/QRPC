@@ -57,99 +57,12 @@ public class CommunicationModule {
 
 
     // Callbacks cuando nuestro dispositivo se conecta a otros dispositivos
-    private final ConnectionLifecycleCallback connectionLifecycleCallback =
-            new ConnectionLifecycleCallback() {
-                @Override
-                public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo connectionInfo) {
-                    // Aceptamos la conexión
-                    Log.i(TAG, "onConnectionInitiated: Aceptando conexión de");
-                    connectionsClient.acceptConnection(endpointId, payloadCallback);
-                }
+    private final ConnectionLifecycleCallback connectionLifecycleCallback;
 
-                @Override
-                public void onConnectionResult(@NonNull String endpointId, ConnectionResolution result) {
-                    // Si la conexión se establece
-                    if (result.getStatus().isSuccess()) {
-
-                        Log.i(TAG, "onConnectionResult: Conexión establecida");
-
-                        LinearLayout ll_endpoint = new LinearLayout(activity);
-                        ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
-                        TextView lon = new TextView(activity);
-                        lon.setText("Lon: 0");
-                        ll_endpoint.addView(lon);
-                        TextView lat = new TextView(activity);
-                        lat.setText("Lat: 0");
-                        ll_endpoint.addView(lat);
-                        TextView bear = new TextView(activity);
-                        bear.setText("Bear: 0");
-                        ll_endpoint.addView(bear);
-                        TextView sp = new TextView(activity);
-                        sp.setText("Sp: 0");
-                        ll_endpoint.addView(sp);
-
-                        UIModule.addEndpointLayout(activity, ll_endpoint);
-
-                        endpoints.add(new Endpoint(endpointId, ll_endpoint));
-                    // Si la conexión falla
-                    } else {
-                        Log.i(TAG, "onConnectionResult: Conexión fallida");
-                    }
-                }
-
-                @Override
-                public void onDisconnected(@NonNull String endpointId) {
-                    Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
-                    LinearLayout ll = null;
-                    for (Endpoint e : endpoints){
-                        if (e.getId().equals(endpointId)){
-                            ll = e.getLinearlayout();
-                        }
-                    }
-                    if (ll != null){
-                        UIModule.removeEndpointLayout(activity,ll);
-                    }
-                }
-            };
 
     // Callbacks cuando se reciben payloads
-    private final PayloadCallback payloadCallback =
-            new PayloadCallback() {
-                @Override
-                public void onPayloadReceived(@NonNull String endpointId, Payload payload) {
-                    try {
-                        Log.i(TAG,"onPayloadReceived: Paquete recibido");
+    private final PayloadCallback payloadCallback;
 
-                        // Tranformamos el map recibido en un objeto de la clase Location
-                        Map<String, Double> targetCoordinates = (HashMap<String, Double>) deserialize(payload.asBytes());
-                        Location targetLocation = new Location("provider");
-                        targetLocation.setLongitude(targetCoordinates.get("longitude"));
-                        targetLocation.setLatitude(targetCoordinates.get("latitude"));
-                        targetLocation.setBearing(targetCoordinates.get("bearing").floatValue());
-                        targetLocation.setSpeed(targetCoordinates.get("longitude").floatValue());
-
-                        // Actualizamos la UI
-                        LinearLayout ll = null;
-                        for (Endpoint e : endpoints){
-                            if (e.getId().equals(endpointId)){
-                                ll = e.getLinearlayout();
-                            }
-                        }
-                        if (ll != null){
-                            UIModule.updateEndpointLayout(activity,ll,targetLocation);
-                        }
-
-                    } catch (IOException | ClassNotFoundException e) {
-                        Log.e(TAG, "onPayloadReceived: Error al deserializar el paquete recibido");
-                    }
-
-                }
-
-                @Override
-                public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
-
-                }
-            };
 
     // Callbacks cuando se encuentran otros dispositivos
     private final EndpointDiscoveryCallback endpointDiscoveryCallback =
@@ -169,12 +82,14 @@ public class CommunicationModule {
                 }
             };
 
-    public CommunicationModule(Activity activity){
+    public CommunicationModule(Activity activity, PayloadCallback payloadCallback, ConnectionLifecycleCallback connectionLifecycleCallback){
         // Creamos un cliente de conexiones
         connectionsClient = Nearby.getConnectionsClient(activity);
 
         packageName = activity.getPackageName();
         this.activity = activity;
+        this.payloadCallback = payloadCallback;
+        this.connectionLifecycleCallback = connectionLifecycleCallback;
         this.endpoints = new ArrayList<Endpoint>();
     }
 
@@ -194,8 +109,6 @@ public class CommunicationModule {
         connectionsClient.startDiscovery(
                 activity.getPackageName(), endpointDiscoveryCallback,
                 new DiscoveryOptions.Builder().setStrategy(STRATEGY).build());
-
-        UIModule.setButtonState(activity, true);
     }
 
     // Desconectarse del objetivo y reiniciar la UI
@@ -203,8 +116,6 @@ public class CommunicationModule {
         connectionsClient.stopAllEndpoints();
         connectionsClient.stopAdvertising();
         connectionsClient.stopDiscovery();
-
-        UIModule.resetGUI(activity);
     }
 
     // Iniciar descubrimiento de dispositivos objetivos
@@ -216,12 +127,35 @@ public class CommunicationModule {
     }
 
     public void sendPayload(Payload payload){
-        //CAMBIAR ID!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        connectionsClient.sendPayload(
-                "34", payload);
+        for (Endpoint endpoint : endpoints) {
+            connectionsClient.sendPayload(endpoint.getId(), payload);
+        }
         Log.i(TAG,"onLocationResult: Ubicación enviada");
     }
 
     // Devuelve la id del dispositivo
     public String getId(){return id;}
+
+    // Devuelve el LinearLayout correspondiente a un punto de conexión
+    public LinearLayout getEndpointLayout(String endpointId){
+
+        LinearLayout ll = null;
+        for (Endpoint e : endpoints){
+            if (e.getId().equals(endpointId)){
+                ll = e.getLinearlayout();
+            }
+        }
+        return ll;
+    }
+
+    // Acepta la conexión con un nuevo punto de conexión que se ha encontrado
+    public void acceptConnection(String endpointId) {
+        connectionsClient.acceptConnection(endpointId, payloadCallback);
+    }
+
+    // Añade un nuevo punto de conexión
+    public void addEndpoint(String endpointId, LinearLayout ll_endpoint) {
+        endpoints.add(new Endpoint(endpointId, ll_endpoint));
+    }
+
 }

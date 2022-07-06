@@ -51,7 +51,7 @@ public class GPSModule {
     private Location currentLocation;
 
     // Constructor
-    public GPSModule(Activity activity, CommunicationModule communicationModule) {
+    public GPSModule(Activity activity, LocationCallback locationCallback) {
         this.activity = activity;
 
         // Establecemos las propiedades de las peticiones de unicación (LocalizationRequest)
@@ -61,33 +61,21 @@ public class GPSModule {
         locationRequest.setPriority(Priority.PRIORITY_HIGH_ACCURACY);
 
         // Callback que se ejecuta cuando el dispositivo recibe una actualización de su ubicación
-        locationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(@NonNull LocationResult locationResult) {
-                super.onLocationResult(locationResult);
-
-                Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente");
-
-                // Enviamos nuestra ubicación como un Map
-                currentLocation = locationResult.getLastLocation();
-                Map<String,Double> coordinates = new HashMap<>();
-                coordinates.put("longitude",currentLocation.getLongitude());
-                coordinates.put("latitude",currentLocation.getLatitude());
-                coordinates.put("bearing",(double)currentLocation.getBearing());
-                coordinates.put("speed",(double)currentLocation.getSpeed());
-                try {
-                    communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
-                } catch (IOException e) {
-                    Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
-                }
-            }
-        };
+        this.locationCallback = locationCallback;
 
         // Creamos un cliente del proveedor de ubicación
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(activity);
 
         // Iniciamos las actualizaciones de ubicación
         startLocationUpdates(activity);
+    }
+
+    public Location getCurrentLocation(){
+        return currentLocation;
+    }
+
+    public void setCurrentLocation(Location location){
+        this.currentLocation = location;
     }
 
     // Inicia las actualizaciones de ubicación
