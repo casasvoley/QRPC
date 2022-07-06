@@ -5,24 +5,15 @@ import android.content.Context;
 import android.location.Location;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 public class UIModule {
 
     // Elimina el estado del juego y actualiza la GUI en consecuencia
     public static void resetGUI(Activity activity) {
-        TextView tv_lon = activity.findViewById(R.id.tv_lon);
-        tv_lon.setText("0.0");
-        TextView tv_lat = activity.findViewById(R.id.tv_lat);
-        tv_lat.setText("0.0");
-        TextView tv_altitude = activity.findViewById(R.id.tv_altitude);
-        tv_altitude.setText("0.0");
-        TextView tv_speed = activity.findViewById(R.id.tv_speed);
-        tv_speed.setText("0.0");
-
-
-        setOpponentName(activity, activity.getString(R.string.no_opponent));
-        setStatusText(activity, activity.getString(R.string.status_disconnected));
+        LinearLayout linearlayout = activity.findViewById(R.id.linear_layout);
+        linearlayout.removeAllViews();
         setButtonState(activity, false);
     }
 
@@ -34,9 +25,8 @@ public class UIModule {
 
     // Activa y desactiva los botones de la GUI en función del estado de la conexión
     public static void setButtonState(Activity activity, boolean connected) {
-        Button findOpponentButton = activity.findViewById(R.id.find_opponent);
-        findOpponentButton.setEnabled(true);
-        findOpponentButton.setVisibility(connected ? View.GONE : View.VISIBLE);
+        Button connectButton = activity.findViewById(R.id.connect);
+        connectButton.setVisibility(connected ? View.GONE : View.VISIBLE);
         Button disconnectButton = activity.findViewById(R.id.disconnect);
         disconnectButton.setVisibility(connected ? View.VISIBLE : View.GONE);
     }
@@ -47,37 +37,44 @@ public class UIModule {
         opponentText.setText(activity.getString(R.string.opponent_name, opponentName));
     }
 
-    // Actualiza los valores de la UI
-    public static void updateUIValues(Activity activity,Location location) {
-        TextView tv_lat = activity.findViewById(R.id.tv_lat);
-        tv_lat.setText(String.valueOf(location.getLatitude()));
-        TextView tv_lon = activity.findViewById(R.id.tv_lon);
-        tv_lon.setText(String.valueOf(location.getLongitude()));
 
-
-        TextView tv_altitude = activity.findViewById(R.id.tv_altitude);
-        if (location.hasBearing()) {
-            tv_altitude.setText(String.valueOf(location.getBearing()));
-        } else {
-            tv_altitude.setText("Not available");
-        }
-
-
-        TextView tv_speed = activity.findViewById(R.id.tv_speed);
-        if (location.hasSpeed()) {
-            tv_speed.setText(String.valueOf(location.getSpeed()));
-        } else {
-            tv_speed.setText("Not available");
-        }
-    }
 
     public static void setOpponentText(Activity activity, String text){
         TextView opponentText = activity.findViewById(R.id.opponent_name);
         opponentText.setText(text);
     }
 
-    public static void enableFindOpponentButton(Activity activity, boolean enabled){
-        Button findOpponentButton = activity.findViewById(R.id.find_opponent);
-        findOpponentButton.setEnabled(enabled);
+    public static void addEndpointLayout(Activity activity, LinearLayout endpoint){
+        LinearLayout ll = activity.findViewById(R.id.linear_layout);
+        ll.addView(endpoint);
+    }
+
+    // Actualiza los valores de la UI
+    public static void updateEndpointLayout(Activity activity, LinearLayout endpoint, Location location) {
+        TextView tv_lat = (TextView) endpoint.getChildAt(0);
+        tv_lat.setText("Lon: " + String.valueOf(location.getLatitude()));
+        TextView tv_lon = (TextView) endpoint.getChildAt(1);
+        tv_lon.setText("Lat: " + String.valueOf(location.getLongitude()));
+
+
+        TextView tv_bearing = (TextView) endpoint.getChildAt(2);
+        if (location.hasBearing()) {
+            tv_bearing.setText(String.valueOf("Bear: " + location.getBearing()));
+        } else {
+            tv_bearing.setText("Bear: Null");
+        }
+
+
+        TextView tv_speed = (TextView) endpoint.getChildAt(3);
+        if (location.hasSpeed()) {
+            tv_speed.setText("Sp: " + String.valueOf(location.getSpeed()));
+        } else {
+            tv_speed.setText("Sp: Null");
+        }
+    }
+
+    public static void removeEndpointLayout(Activity activity, LinearLayout endpoint){
+        LinearLayout ll = activity.findViewById(R.id.linear_layout);
+        ll.removeView(endpoint);
     }
 }

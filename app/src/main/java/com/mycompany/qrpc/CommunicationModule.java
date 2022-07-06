@@ -8,6 +8,7 @@ import android.location.Location;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -27,8 +28,10 @@ import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
 import com.google.android.gms.nearby.connection.Strategy;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class CommunicationModule {
 
@@ -46,83 +49,20 @@ public class CommunicationModule {
     // Estrategia de conexión
     private static final Strategy STRATEGY = Strategy.P2P_CLUSTER;
 
-    // Datos del oponente
-    private String opponentEndpointId;
-    private String opponentName;
+    // Datos de las conexiones
+    private ArrayList<Endpoint> endpoints;
 
     // Actividad principal
     private Activity activity;
 
 
     // Callbacks cuando nuestro dispositivo se conecta a otros dispositivos
-    private final ConnectionLifecycleCallback connectionLifecycleCallback =
-            new ConnectionLifecycleCallback() {
-                @Override
-                public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo connectionInfo) {
-                    // Aceptamos la conexión
-                    Log.i(TAG, "onConnectionInitiated: Aceptando conexión");
-                    connectionsClient.acceptConnection(endpointId, payloadCallback);
-                    opponentName = connectionInfo.getEndpointName();
-                }
+    private final ConnectionLifecycleCallback connectionLifecycleCallback;
 
-                @Override
-                public void onConnectionResult(@NonNull String endpointId, ConnectionResolution result) {
-                    // Si la conexión se establece
-                    if (result.getStatus().isSuccess()) {
-                        Log.i(TAG, "onConnectionResult: Conexión establecida");
-
-                        connectionsClient.stopDiscovery();
-                        connectionsClient.stopAdvertising();
-
-                        opponentEndpointId = endpointId;
-                        UIModule.setOpponentText(activity, activity.getString(R.string.opponent_name, opponentName));
-                        UIModule.setStatusText(activity, activity.getString(R.string.status_connected));
-                        UIModule.setButtonState(activity, true);
-
-                        // Si la conexión falla
-                    } else {
-                        Log.i(TAG, "onConnectionResult: Conexión fallida");
-                    }
-                }
-
-                @Override
-                public void onDisconnected(@NonNull String endpointId) {
-                    Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
-                    opponentEndpointId = null;
-                    opponentName = null;
-                    UIModule.resetGUI(activity);
-                }
-            };
 
     // Callbacks cuando se reciben payloads
-    private final PayloadCallback payloadCallback =
-            new PayloadCallback() {
-                @Override
-                public void onPayloadReceived(@NonNull String endpointId, Payload payload) {
-                    try {
-                        Log.i(TAG,"onPayloadReceived: Paquete recibido");
+    private final PayloadCallback payloadCallback;
 
-                        // Tranformamos el map recibido en un objeto de la clase Location
-                        Map<String, Double> targetCoordinates = (HashMap<String, Double>) deserialize(payload.asBytes());
-                        Location targetLocation = new Location("provider");
-                        targetLocation.setLongitude(targetCoordinates.get("longitude"));
-                        targetLocation.setLatitude(targetCoordinates.get("latitude"));
-                        targetLocation.setBearing(targetCoordinates.get("bearing").floatValue());
-                        targetLocation.setSpeed(targetCoordinates.get("longitude").floatValue());
-
-                        // Actualizamos la UI
-                        UIModule.updateUIValues(activity,targetLocation);
-                    } catch (IOException | ClassNotFoundException e) {
-                        Log.e(TAG, "onPayloadReceived: Error al deserializar el paquete recibido");
-                    }
-
-                }
-
-                @Override
-                public void onPayloadTransferUpdate(@NonNull String endpointId, @NonNull PayloadTransferUpdate update) {
-
-                }
-            };
 
     // Callbacks cuando se encuentran otros dispositivos
     private final EndpointDiscoveryCallback endpointDiscoveryCallback =
@@ -142,12 +82,15 @@ public class CommunicationModule {
                 }
             };
 
-    public CommunicationModule(Activity activity){
+    public CommunicationModule(Activity activity, PayloadCallback payloadCallback, ConnectionLifecycleCallback connectionLifecycleCallback){
         // Creamos un cliente de conexiones
         connectionsClient = Nearby.getConnectionsClient(activity);
 
         packageName = activity.getPackageName();
         this.activity = activity;
+        this.payloadCallback = payloadCallback;
+        this.connectionLifecycleCallback = connectionLifecycleCallback;
+        this.endpoints = new ArrayList<Endpoint>();
     }
 
     // Iniciar anuncios de nuestra presencia
@@ -159,17 +102,20 @@ public class CommunicationModule {
     }
 
     // Encontrar objetivo
-    public void findEndpoint() {
-        startAdvertising();
-        startDiscovery();
-        UIModule.setStatusText(activity, activity.getString(R.string.status_searching));
-        UIModule.enableFindOpponentButton(activity, false);
+    public void connect() {
+        connectionsClient.startAdvertising(
+                id, packageName, connectionLifecycleCallback,
+                new AdvertisingOptions.Builder().setStrategy(STRATEGY).build());
+        connectionsClient.startDiscovery(
+                activity.getPackageName(), endpointDiscoveryCallback,
+                new DiscoveryOptions.Builder().setStrategy(STRATEGY).build());
     }
 
     // Desconectarse del objetivo y reiniciar la UI
     public void disconnect() {
-        connectionsClient.disconnectFromEndpoint(opponentEndpointId);
-        UIModule.resetGUI(activity);
+        connectionsClient.stopAllEndpoints();
+        connectionsClient.stopAdvertising();
+        connectionsClient.stopDiscovery();
     }
 
     // Iniciar descubrimiento de dispositivos objetivos
@@ -181,11 +127,35 @@ public class CommunicationModule {
     }
 
     public void sendPayload(Payload payload){
-        connectionsClient.sendPayload(
-                opponentEndpointId, payload);
-        Log.i(TAG,"onLocationResult: Location package sent");
+        for (Endpoint endpoint : endpoints) {
+            connectionsClient.sendPayload(endpoint.getId(), payload);
+        }
+        Log.i(TAG,"onLocationResult: Ubicación enviada");
     }
 
     // Devuelve la id del dispositivo
     public String getId(){return id;}
+
+    // Devuelve el LinearLayout correspondiente a un punto de conexión
+    public LinearLayout getEndpointLayout(String endpointId){
+
+        LinearLayout ll = null;
+        for (Endpoint e : endpoints){
+            if (e.getId().equals(endpointId)){
+                ll = e.getLinearlayout();
+            }
+        }
+        return ll;
+    }
+
+    // Acepta la conexión con un nuevo punto de conexión que se ha encontrado
+    public void acceptConnection(String endpointId) {
+        connectionsClient.acceptConnection(endpointId, payloadCallback);
+    }
+
+    // Añade un nuevo punto de conexión
+    public void addEndpoint(String endpointId, LinearLayout ll_endpoint) {
+        endpoints.add(new Endpoint(endpointId, ll_endpoint));
+    }
+
 }

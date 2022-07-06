@@ -12,6 +12,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -19,6 +20,8 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -51,6 +54,8 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "QRPC";
+
+    private Activity activity = this;
 
     // Permisos requeridos en función de la versión de Android del dispositivo
     private static final String[] REQUIRED_PERMISSIONS;
@@ -104,16 +109,19 @@ public class MainActivity extends AppCompatActivity {
     public static final int FASTEST_UPDATE_INTERVAL = 5;
     private static final int PERMISSIONS_FINE_LOCATION = 99;
 
-    // Cliente de conexión
-    private ConnectionsClient connectionsClient;
-
     // Botones
-    private Button findOpponentButton;
+    private Button connectButton;
     private Button disconnectButton;
 
     // Textviews
     private TextView opponentText;
     private TextView statusText;
+
+    // ScrollView
+    private ScrollView scrollview;
+
+    // LinearLayout
+    private LinearLayout linearlayout;
 
     // UI elements
     TextView tv_lat, tv_lon, tv_altitude,  tv_speed;
@@ -121,26 +129,115 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.main_layout);
 
         // Instanciamos módulos de GPS y de comunicaciones
-        communicationModule = new CommunicationModule(this);
-        gpsModule = new GPSModule(this, communicationModule);
+        communicationModule = new CommunicationModule(this, new PayloadCallback() {
+            @Override
+            public void onPayloadReceived(@NonNull String endpointId, Payload payload) {
+                try {
+                    Log.i(TAG,"onPayloadReceived: Paquete recibido");
+
+                    // Tranformamos el map recibido en un objeto de la clase Location
+                    Map<String, Double> targetCoordinates = (HashMap<String, Double>) deserialize(payload.asBytes());
+                    Location targetLocation = new Location("provider");
+                    targetLocation.setLongitude(targetCoordinates.get("longitude"));
+                    targetLocation.setLatitude(targetCoordinates.get("latitude"));
+                    targetLocation.setBearing(targetCoordinates.get("bearing").floatValue());
+                    targetLocation.setSpeed(targetCoordinates.get("longitude").floatValue());
+
+                    // Actualizamos la UI
+                    LinearLayout ll = communicationModule.getEndpointLayout(endpointId);
+                    if (ll != null){
+                        UIModule.updateEndpointLayout(activity,ll,targetLocation);
+                    }
+
+                } catch (IOException | ClassNotFoundException e) {
+                    Log.e(TAG, "onPayloadReceived: Error al deserializar el paquete recibido");
+                }
+            }
+
+            @Override
+            public void onPayloadTransferUpdate(String endpointId, PayloadTransferUpdate payloadTransferUpdate) {}
+
+        }, new ConnectionLifecycleCallback() {
+
+            @Override
+            public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo connectionInfo) {
+                // Aceptamos la conexión
+                Log.i(TAG, "onConnectionInitiated: Aceptando conexión");
+                communicationModule.acceptConnection(endpointId);
+            }
+
+            @Override
+            public void onConnectionResult(@NonNull String endpointId, ConnectionResolution result) {
+                // Si la conexión se establece
+                if (result.getStatus().isSuccess()) {
+
+                    Log.i(TAG, "onConnectionResult: Conexión establecida");
+
+                    LinearLayout ll_endpoint = new LinearLayout(activity);
+                    ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
+                    TextView lon = new TextView(activity);
+                    lon.setText("Lon: 0");
+                    ll_endpoint.addView(lon);
+                    TextView lat = new TextView(activity);
+                    lat.setText("Lat: 0");
+                    ll_endpoint.addView(lat);
+                    TextView bear = new TextView(activity);
+                    bear.setText("Bear: 0");
+                    ll_endpoint.addView(bear);
+                    TextView sp = new TextView(activity);
+                    sp.setText("Sp: 0");
+                    ll_endpoint.addView(sp);
+
+                    UIModule.addEndpointLayout(activity, ll_endpoint);
+
+                    communicationModule.addEndpoint(endpointId, ll_endpoint);
+                    // Si la conexión falla
+                } else {
+                    Log.i(TAG, "onConnectionResult: Conexión fallida");
+                }
+            }
+
+            @Override
+            public void onDisconnected(@NonNull String endpointId) {
+                Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
+                LinearLayout ll = communicationModule.getEndpointLayout(endpointId);
+                if (ll != null){
+                    UIModule.removeEndpointLayout(activity,ll);
+                }
+            }
+        });
+
+        gpsModule = new GPSModule(this, new LocationCallback() {
+            @Override
+            public void onLocationResult(@NonNull LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+
+                Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente");
+
+                // Enviamos nuestra ubicación como un Map
+                Location currentLocation = locationResult.getLastLocation();
+                gpsModule.setCurrentLocation(currentLocation);
+                Map<String,Double> coordinates = new HashMap<>();
+                coordinates.put("longitude",currentLocation.getLongitude());
+                coordinates.put("latitude",currentLocation.getLatitude());
+                coordinates.put("bearing",(double)currentLocation.getBearing());
+                coordinates.put("speed",(double)currentLocation.getSpeed());
+                try {
+                    communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
+                } catch (IOException e) {
+                    Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+                }
+            }
+        });
 
         // Guardamos los elementos de la UI
-        findOpponentButton = findViewById(R.id.find_opponent);
+        connectButton = findViewById(R.id.connect);
         disconnectButton = findViewById(R.id.disconnect);
-
-        opponentText = findViewById(R.id.opponent_name);
-        statusText = findViewById(R.id.status);
-
-        TextView nameView = findViewById(R.id.name);
-        nameView.setText(getString(R.string.codename, communicationModule.getId()));
-
-        tv_lat = findViewById(R.id.tv_lat);
-        tv_lon = findViewById(R.id.tv_lon);
-        tv_altitude = findViewById(R.id.tv_altitude);
-        tv_speed = findViewById(R.id.tv_speed);
+        scrollview = findViewById(R.id.scroll_view);
+        linearlayout = findViewById(R.id.linear_layout);
 
         UIModule.resetGUI(this);
     }
@@ -154,11 +251,15 @@ public class MainActivity extends AppCompatActivity {
                 requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
             }
         }
+
+
+
+
     }
 
     @Override
     protected void onStop() {
-        connectionsClient.stopAllEndpoints();
+        communicationModule.disconnect();
         UIModule.resetGUI(this);
 
         super.onStop();
@@ -199,13 +300,15 @@ public class MainActivity extends AppCompatActivity {
         recreate();
     }
 
-    public void findEndpoint(View view){
+    public void connect(View view){
         Log.i(TAG, "Comunicación activada");
-        communicationModule.findEndpoint();
+        communicationModule.connect();
+        UIModule.setButtonState(this, true);
     }
 
     public void disconnect(View view){
         Log.i(TAG, "Comunicación desactivada");
         communicationModule.disconnect();
+        UIModule.resetGUI(this);
     }
 }
