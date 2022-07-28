@@ -136,16 +136,16 @@ public class CommunicationModule {
     // Devuelve la id del dispositivo
     public String getId(){return id;}
 
-    // Devuelve el LinearLayout correspondiente a un punto de conexión
-    public LinearLayout getEndpointLayout(String endpointId){
+    // Devuelve el punto de conexión con la ID dada
+    public Endpoint getEndpoint(String endpointId){
 
-        LinearLayout ll = null;
+        Endpoint endpoint = null;
         for (Endpoint e : endpoints){
             if (e.getId().equals(endpointId)){
-                ll = e.getLinearlayout();
+                endpoint = e;
             }
         }
-        return ll;
+        return endpoint;
     }
 
     // Acepta la conexión con un nuevo punto de conexión que se ha encontrado

@@ -1,0 +1,3 @@
+- Hacer que cuando el dispositivo mida una ubicación similar a la anterior, no actualice la ubicación ni la envíe.
+
+- Comprobar si 5º de error es suficiente para comparar ángulos en PatternLogicModule

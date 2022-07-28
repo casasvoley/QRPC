@@ -15,9 +15,11 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.LocationListener;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -131,26 +133,47 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(bundle);
         setContentView(R.layout.main_layout);
 
-        // Instanciamos módulos de GPS y de comunicaciones
+        // Instanciamos módulo de comunicaciones
         communicationModule = new CommunicationModule(this, new PayloadCallback() {
             @Override
             public void onPayloadReceived(@NonNull String endpointId, Payload payload) {
                 try {
                     Log.i(TAG,"onPayloadReceived: Paquete recibido");
 
-                    // Tranformamos el map recibido en un objeto de la clase Location
-                    Map<String, Double> targetCoordinates = (HashMap<String, Double>) deserialize(payload.asBytes());
-                    Location targetLocation = new Location("provider");
-                    targetLocation.setLongitude(targetCoordinates.get("longitude"));
-                    targetLocation.setLatitude(targetCoordinates.get("latitude"));
-                    targetLocation.setBearing(targetCoordinates.get("bearing").floatValue());
-                    targetLocation.setSpeed(targetCoordinates.get("longitude").floatValue());
+                    // Deserializamos el map recibido
+                    Map<String, Double> referenceInfo = (HashMap<String, Double>) deserialize(payload.asBytes());
+
+                    // Calculamos la velocidad del punto de conexión
+                    Endpoint e = communicationModule.getEndpoint(endpointId);
+                    double longitude = referenceInfo.get("longitude");
+                    double latitude = referenceInfo.get("latitude");
+                    double longitude_speed;
+                    double latitude_speed;
+                    if (longitude == e.getLastLongitude() && latitude == e.getLastLatitude()){
+                        longitude_speed = e.getLastLongitudeSpeed();
+                        latitude_speed = e.getLastLatitudeSpeed();
+                    } else {
+                        longitude_speed = longitude - e.getLastLongitude();
+                        e.setLastLongitudeSpeed(longitude_speed);
+                        latitude_speed = latitude - e.getLastLatitude();
+                        e.setLastLatitudeSpeed(latitude_speed);
+                    }
+                    referenceInfo.put("longitude_speed", longitude_speed);
+                    referenceInfo.put("latitude_speed", latitude_speed);
 
                     // Actualizamos la UI
-                    LinearLayout ll = communicationModule.getEndpointLayout(endpointId);
+                    LinearLayout ll = e.getLinearlayout();
                     if (ll != null){
-                        UIModule.updateEndpointLayout(activity,ll,targetLocation);
+                        String pattern = PatternLogicModule.calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
+                        UIModule.updateEndpointLayout(activity, ll, pattern);
+                        /*UIModule.updateEndpointLayout(activity,ll,
+                                longitude,latitude,
+                                longitude_speed,latitude_speed);*/
                     }
+
+                    // Actualizamos la posición guardada del punto de conexión
+                    e.setLastLongitude(referenceInfo.get("longitude"));
+                    e.setLastLatitude(referenceInfo.get("latitude"));
 
                 } catch (IOException | ClassNotFoundException e) {
                     Log.e(TAG, "onPayloadReceived: Error al deserializar el paquete recibido");
@@ -178,7 +201,11 @@ public class MainActivity extends AppCompatActivity {
 
                     LinearLayout ll_endpoint = new LinearLayout(activity);
                     ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
-                    TextView lon = new TextView(activity);
+                    TextView pattern_view = new TextView(activity);
+                    pattern_view.setText("Pattern:");
+                    pattern_view.setTextSize(TypedValue.COMPLEX_UNIT_PT, 15);
+                    ll_endpoint.addView(pattern_view);
+                    /*TextView lon = new TextView(activity);
                     lon.setText("Lon: 0");
                     ll_endpoint.addView(lon);
                     TextView lat = new TextView(activity);
@@ -189,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
                     ll_endpoint.addView(bear);
                     TextView sp = new TextView(activity);
                     sp.setText("Sp: 0");
-                    ll_endpoint.addView(sp);
+                    ll_endpoint.addView(sp);*/
 
                     UIModule.addEndpointLayout(activity, ll_endpoint);
 
@@ -203,32 +230,51 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onDisconnected(@NonNull String endpointId) {
                 Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
-                LinearLayout ll = communicationModule.getEndpointLayout(endpointId);
+                LinearLayout ll = communicationModule.getEndpoint(endpointId).getLinearlayout();
                 if (ll != null){
                     UIModule.removeEndpointLayout(activity,ll);
                 }
             }
         });
 
-        gpsModule = new GPSModule(this, new LocationCallback() {
-            @Override
-            public void onLocationResult(@NonNull LocationResult locationResult) {
-                super.onLocationResult(locationResult);
+        // Instanciamos módulo de GPS
+        gpsModule = new GPSModule(this, /*currentLocation -> {
 
-                Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente");
+            Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente");
+
+            // Enviamos nuestra ubicación como un Map
+            Map<String, Double> coordinates = new HashMap<>();
+            coordinates.put("longitude", currentLocation.getLongitude());
+            coordinates.put("latitude", currentLocation.getLatitude());
+            try {
+                communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
+            } catch (IOException e) {
+                Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+            }
+        }*/new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente: " + location.getLongitude());
 
                 // Enviamos nuestra ubicación como un Map
-                Location currentLocation = locationResult.getLastLocation();
-                gpsModule.setCurrentLocation(currentLocation);
-                Map<String,Double> coordinates = new HashMap<>();
-                coordinates.put("longitude",currentLocation.getLongitude());
-                coordinates.put("latitude",currentLocation.getLatitude());
-                coordinates.put("bearing",(double)currentLocation.getBearing());
-                coordinates.put("speed",(double)currentLocation.getSpeed());
+                Map<String, Double> coordinates = new HashMap<>();
+                coordinates.put("longitude", location.getLongitude());
+                coordinates.put("latitude", location.getLatitude());
                 try {
                     communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
                 } catch (IOException e) {
                     Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+                }
+
+                Map<String, Double> pastCoordinates = gpsModule.getCoordinates();
+                if (pastCoordinates.get("longitude") == null && pastCoordinates.get("latitude") == null) {
+                    coordinates.put("longitude_speed",null);
+                    coordinates.put("latitude_speed",null);
+                    gpsModule.setCoordinates(coordinates);
+                } else if (coordinates.get("longitude") != pastCoordinates.get("longitude") || coordinates.get("latitude") != pastCoordinates.get("latitude")){
+                    coordinates.put("longitude_speed",coordinates.get("longitude") - pastCoordinates.get("longitude"));
+                    coordinates.put("latitude_speed",coordinates.get("latitude") - pastCoordinates.get("latitude"));
+                    gpsModule.setCoordinates(coordinates);
                 }
             }
         });
@@ -259,6 +305,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        gpsModule.stopLocationUpdates();
         communicationModule.disconnect();
         UIModule.resetGUI(this);
 
@@ -303,12 +350,14 @@ public class MainActivity extends AppCompatActivity {
     public void connect(View view){
         Log.i(TAG, "Comunicación activada");
         communicationModule.connect();
+        gpsModule.startLocationUpdates(this);
         UIModule.setButtonState(this, true);
     }
 
     public void disconnect(View view){
         Log.i(TAG, "Comunicación desactivada");
         communicationModule.disconnect();
+        gpsModule.stopLocationUpdates();
         UIModule.resetGUI(this);
     }
 }

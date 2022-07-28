@@ -44,37 +44,35 @@ public class UIModule {
         opponentText.setText(text);
     }
 
-    public static void addEndpointLayout(Activity activity, LinearLayout endpoint){
+    public static void addEndpointLayout(Activity activity, LinearLayout endpointLayout){
         LinearLayout ll = activity.findViewById(R.id.linear_layout);
-        ll.addView(endpoint);
+        ll.addView(endpointLayout);
     }
 
     // Actualiza los valores de la UI
-    public static void updateEndpointLayout(Activity activity, LinearLayout endpoint, Location location) {
+    /*public static void updateEndpointLayout(Activity activity, LinearLayout endpoint,
+                                            double longitude, double latitude,
+                                            double longitude_speed, double latitude_speed) {
         TextView tv_lat = (TextView) endpoint.getChildAt(0);
-        tv_lat.setText("Lon: " + String.valueOf(location.getLatitude()));
+        tv_lat.setText("Lon: " + String.valueOf(longitude));
         TextView tv_lon = (TextView) endpoint.getChildAt(1);
-        tv_lon.setText("Lat: " + String.valueOf(location.getLongitude()));
+        tv_lon.setText("Lat: " + String.valueOf(latitude));
 
 
-        TextView tv_bearing = (TextView) endpoint.getChildAt(2);
-        if (location.hasBearing()) {
-            tv_bearing.setText(String.valueOf("Bear: " + location.getBearing()));
-        } else {
-            tv_bearing.setText("Bear: Null");
-        }
+        TextView tv_x_velocity = (TextView) endpoint.getChildAt(2);
+        tv_x_velocity.setText("X: " + String.valueOf(longitude_speed));
 
+        TextView tv_y_velocity = (TextView) endpoint.getChildAt(3);
+        tv_y_velocity.setText("Y: " + String.valueOf(latitude_speed));
+    }*/
 
-        TextView tv_speed = (TextView) endpoint.getChildAt(3);
-        if (location.hasSpeed()) {
-            tv_speed.setText("Sp: " + String.valueOf(location.getSpeed()));
-        } else {
-            tv_speed.setText("Sp: Null");
-        }
+    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, String pattern){
+        TextView tv = (TextView) endpointLayout.getChildAt(0);
+        tv.setText("Pattern: " + pattern);
     }
 
-    public static void removeEndpointLayout(Activity activity, LinearLayout endpoint){
+    public static void removeEndpointLayout(Activity activity, LinearLayout endpointLayout){
         LinearLayout ll = activity.findViewById(R.id.linear_layout);
-        ll.removeView(endpoint);
+        ll.removeView(endpointLayout);
     }
 }
