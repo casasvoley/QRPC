@@ -11,3 +11,9 @@
 - Añadir botón de ayuda que al pulsarlo aparezca un pop-up con información sobre cómo usar la aplicación
 
 - Crear y añadir los iconos de los patrones de posición
+
+- Usar Firebase para almacenar los patrones (sólo si el actual es distinto al útltimo patrón guardado)
+
+- Ordenar los endpoints en la UI por proximidad
+
+- ¿Quizá comprobar que los endpoints están por debajo de un cierto umbral de distancia antes de conectarse?
