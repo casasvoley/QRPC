@@ -5,3 +5,9 @@
 - Cambiar de _Nearby Connections a Nearby Messages
 
 - Encriptar los mensjaes que se mandan y negociar claves en el handshake inicial
+
+- Comprobar si la UI funciona al conectar más de 2 dispositivos
+
+- Añadir botón de ayuda que al pulsarlo aparezca un pop-up con información sobre cómo usar la aplicación
+
+- Crear y añadir los iconos de los patrones de posición
