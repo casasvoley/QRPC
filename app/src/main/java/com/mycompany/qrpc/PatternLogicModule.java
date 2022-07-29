@@ -1,7 +1,5 @@
 package com.mycompany.qrpc;
 
-import android.location.Location;
-
 import java.util.Map;
 
 public class PatternLogicModule {
@@ -387,6 +385,7 @@ public class PatternLogicModule {
         }
     }
 
+    // Cálcula el ángulo entre dos vectores
     private static double calculateAngle(double[] vector_1, double[] vector_2) {
         return Math.acos( (vector_1[0]*vector_2[0] + vector_1[1]*vector_2[1])
                 / (Math.sqrt(Math.pow(vector_1[0],2) + Math.pow(vector_1[1],2))
@@ -394,6 +393,7 @@ public class PatternLogicModule {
                 * 180 / Math.PI;
     }
 
+    // Cálcula el sentido del ángulo entre dos vectores
     private static int calculateRotationSign(double[] vector_1, double[] vector_2) {
         // Sólo calculamos la tercera coordenada del producto vectorial, ya que es la que nos
         // interesa (las otras dos son nulas)
@@ -407,6 +407,7 @@ public class PatternLogicModule {
         }
     }
 
+    // Devuelve true si dos ángulos son iguales salvo un cierto margen de error
     private static boolean anglesEqual(double angle_1, double angle_2) {
         if (Math.abs(angle_1-angle_2) < error) {
             return true;

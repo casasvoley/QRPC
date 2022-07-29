@@ -4,11 +4,22 @@ import android.widget.LinearLayout;
 
 public class Endpoint {
 
+    // ID
     private String id;
+
+    // LinearLayout de la UI donde se muestra información sobre este punto de conexión
     private LinearLayout linearlayout;
+
+    // Última longitud conocida
     private double lastLongitude;
+
+    // Última latitud conocida
     private double lastLatitude;
+
+    // Última velocidad en sentido de la longitud conocida
     private double lastLongitudeSpeed;
+
+    // Última velocidad en sentido de la latitud conocida
     private double lastLatitudeSpeed;
 
     public Endpoint(String id, LinearLayout linearlayout){

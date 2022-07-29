@@ -1,57 +1,38 @@
 package com.mycompany.qrpc;
 
 import static android.os.Build.VERSION_CODES.S;
-
 import static com.mycompany.qrpc.SerializationHelper.deserialize;
 import static com.mycompany.qrpc.SerializationHelper.serialize;
-
-import androidx.annotation.CallSuper;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.location.LocationListener;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
-import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
-import com.google.android.gms.location.LocationServices;
-import android.location.Location;
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
-import com.google.android.gms.nearby.Nearby;
-import com.google.android.gms.nearby.connection.AdvertisingOptions;
 import com.google.android.gms.nearby.connection.ConnectionInfo;
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
 import com.google.android.gms.nearby.connection.ConnectionResolution;
-import com.google.android.gms.nearby.connection.ConnectionsClient;
-import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo;
-import com.google.android.gms.nearby.connection.DiscoveryOptions;
-import com.google.android.gms.nearby.connection.EndpointDiscoveryCallback;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
-import com.google.android.gms.nearby.connection.Strategy;
-import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -104,30 +85,6 @@ public class MainActivity extends AppCompatActivity {
     // Módulo de comunicaciones
     CommunicationModule communicationModule;
 
-
-
-    // Constantes de ubicación
-    public static final int DEFAULT_UPDATE_INTERVAL = 10;
-    public static final int FASTEST_UPDATE_INTERVAL = 5;
-    private static final int PERMISSIONS_FINE_LOCATION = 99;
-
-    // Botones
-    private Button connectButton;
-    private Button disconnectButton;
-
-    // Textviews
-    private TextView opponentText;
-    private TextView statusText;
-
-    // ScrollView
-    private ScrollView scrollview;
-
-    // LinearLayout
-    private LinearLayout linearlayout;
-
-    // UI elements
-    TextView tv_lat, tv_lon, tv_altitude,  tv_speed;
-
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
@@ -138,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPayloadReceived(@NonNull String endpointId, Payload payload) {
                 try {
-                    Log.i(TAG,"onPayloadReceived: Paquete recibido");
+                    Log.i(TAG,"onPayloadReceived: Paquete recibido: " + endpointId);
 
                     // Deserializamos el map recibido
                     Map<String, Double> referenceInfo = (HashMap<String, Double>) deserialize(payload.asBytes());
@@ -171,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
                                 longitude_speed,latitude_speed);*/
                     }
 
-                    // Actualizamos la posición guardada del punto de conexión
+                    // Actualizamos la posición del punto de conexión guardada
                     e.setLastLongitude(referenceInfo.get("longitude"));
                     e.setLastLatitude(referenceInfo.get("latitude"));
 
@@ -199,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
 
                     Log.i(TAG, "onConnectionResult: Conexión establecida");
 
+                    // Creamos el LinearLayout donde se mostrará la información sobre este punto de conexión
                     LinearLayout ll_endpoint = new LinearLayout(activity);
                     ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
                     TextView pattern_view = new TextView(activity);
@@ -218,10 +176,13 @@ public class MainActivity extends AppCompatActivity {
                     sp.setText("Sp: 0");
                     ll_endpoint.addView(sp);*/
 
+                    // Añadimos el LinearLayout a la UI
                     UIModule.addEndpointLayout(activity, ll_endpoint);
 
+                    // Guardamos el punto de conexión
                     communicationModule.addEndpoint(endpointId, ll_endpoint);
-                    // Si la conexión falla
+
+                // Si la conexión falla
                 } else {
                     Log.i(TAG, "onConnectionResult: Conexión fallida");
                 }
@@ -229,6 +190,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onDisconnected(@NonNull String endpointId) {
+                // El punto de conexión se ha desconectado
                 Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
                 LinearLayout ll = communicationModule.getEndpoint(endpointId).getLinearlayout();
                 if (ll != null){
@@ -238,52 +200,35 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // Instanciamos módulo de GPS
-        gpsModule = new GPSModule(this, /*currentLocation -> {
-
-            Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente");
+        gpsModule = new GPSModule(this, location -> {
+            Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente: " + location.getLongitude());
 
             // Enviamos nuestra ubicación como un Map
             Map<String, Double> coordinates = new HashMap<>();
-            coordinates.put("longitude", currentLocation.getLongitude());
-            coordinates.put("latitude", currentLocation.getLatitude());
+            coordinates.put("longitude", location.getLongitude());
+            coordinates.put("latitude", location.getLatitude());
             try {
                 communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
             } catch (IOException e) {
                 Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
             }
-        }*/new OnSuccessListener<Location>() {
-            @Override
-            public void onSuccess(Location location) {
-                Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente: " + location.getLongitude());
 
-                // Enviamos nuestra ubicación como un Map
-                Map<String, Double> coordinates = new HashMap<>();
-                coordinates.put("longitude", location.getLongitude());
-                coordinates.put("latitude", location.getLatitude());
-                try {
-                    communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
-                } catch (IOException e) {
-                    Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
-                }
+            // Accedemos a las coordenadas que tiene guardadas el GPSModule
+            Map<String, Double> pastCoordinates = gpsModule.getCoordinates();
 
-                Map<String, Double> pastCoordinates = gpsModule.getCoordinates();
-                if (pastCoordinates.get("longitude") == null && pastCoordinates.get("latitude") == null) {
-                    coordinates.put("longitude_speed",null);
-                    coordinates.put("latitude_speed",null);
-                    gpsModule.setCoordinates(coordinates);
-                } else if (coordinates.get("longitude") != pastCoordinates.get("longitude") || coordinates.get("latitude") != pastCoordinates.get("latitude")){
-                    coordinates.put("longitude_speed",coordinates.get("longitude") - pastCoordinates.get("longitude"));
-                    coordinates.put("latitude_speed",coordinates.get("latitude") - pastCoordinates.get("latitude"));
-                    gpsModule.setCoordinates(coordinates);
-                }
+            // Si las coordenadas guardadas son nulas
+            if (pastCoordinates.get("longitude") == null && pastCoordinates.get("latitude") == null) {
+                // Sustituimos la longitud y la latitud por las nuevas y dejamos las velocidades como nulas
+                coordinates.put("longitude_speed",null);
+                coordinates.put("latitude_speed",null);
+                gpsModule.setCoordinates(coordinates);
+            // Si las nuevas coordenadas son distintas a las guardadas, las sustuitimos
+            } else if (!Objects.equals(coordinates.get("longitude"), pastCoordinates.get("longitude")) || !Objects.equals(coordinates.get("latitude"), pastCoordinates.get("latitude"))){
+                coordinates.put("longitude_speed",coordinates.get("longitude") - pastCoordinates.get("longitude"));
+                coordinates.put("latitude_speed",coordinates.get("latitude") - pastCoordinates.get("latitude"));
+                gpsModule.setCoordinates(coordinates);
             }
         });
-
-        // Guardamos los elementos de la UI
-        connectButton = findViewById(R.id.connect);
-        disconnectButton = findViewById(R.id.disconnect);
-        scrollview = findViewById(R.id.scroll_view);
-        linearlayout = findViewById(R.id.linear_layout);
 
         UIModule.resetGUI(this);
     }
@@ -292,24 +237,22 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
+        // Comprobamos los permisos de la aplicación
         if (!hasPermissions(this, REQUIRED_PERMISSIONS)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
             }
         }
-
-
-
-
     }
 
     @Override
     protected void onStop() {
+        super.onStop();
+
+        // Detenemos los módulos de GPS y de comunicación
         gpsModule.stopLocationUpdates();
         communicationModule.disconnect();
         UIModule.resetGUI(this);
-
-        super.onStop();
     }
 
     // Devuelve verdadero si se han concedido todos los permisos requeridos a la app
@@ -347,6 +290,7 @@ public class MainActivity extends AppCompatActivity {
         recreate();
     }
 
+    // Activa la comunicación y el cálculo de la ubicación
     public void connect(View view){
         Log.i(TAG, "Comunicación activada");
         communicationModule.connect();
@@ -354,6 +298,7 @@ public class MainActivity extends AppCompatActivity {
         UIModule.setButtonState(this, true);
     }
 
+    // Desactiva la comunicación y el cálculo de la ubicación
     public void disconnect(View view){
         Log.i(TAG, "Comunicación desactivada");
         communicationModule.disconnect();

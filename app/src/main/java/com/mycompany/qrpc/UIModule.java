@@ -1,8 +1,6 @@
 package com.mycompany.qrpc;
 
 import android.app.Activity;
-import android.content.Context;
-import android.location.Location;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -23,7 +21,7 @@ public class UIModule {
         statusText.setText(text);
     }
 
-    // Activa y desactiva los botones de la GUI en función del estado de la conexión
+    // Activa y desactiva los botones de la GUI en función de si la conexión está activada
     public static void setButtonState(Activity activity, boolean connected) {
         Button connectButton = activity.findViewById(R.id.connect);
         connectButton.setVisibility(connected ? View.GONE : View.VISIBLE);
@@ -31,25 +29,17 @@ public class UIModule {
         disconnectButton.setVisibility(connected ? View.VISIBLE : View.GONE);
     }
 
-    // Establece el nombre del oponente
-    public static void setOpponentName(Activity activity, String opponentName) {
-        TextView opponentText = activity.findViewById(R.id.opponent_name);
-        opponentText.setText(activity.getString(R.string.opponent_name, opponentName));
-    }
-
-
-
-    public static void setOpponentText(Activity activity, String text){
-        TextView opponentText = activity.findViewById(R.id.opponent_name);
-        opponentText.setText(text);
-    }
-
+    // Añade un LinearLayout para un nuevo punto de conexión
     public static void addEndpointLayout(Activity activity, LinearLayout endpointLayout){
         LinearLayout ll = activity.findViewById(R.id.linear_layout);
         ll.addView(endpointLayout);
     }
 
-    // Actualiza los valores de la UI
+    // Actualiza los valores de el LinearLayout de un punto de conexión
+    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, String pattern){
+        TextView tv = (TextView) endpointLayout.getChildAt(0);
+        tv.setText("Pattern: " + pattern);
+    }
     /*public static void updateEndpointLayout(Activity activity, LinearLayout endpoint,
                                             double longitude, double latitude,
                                             double longitude_speed, double latitude_speed) {
@@ -66,11 +56,7 @@ public class UIModule {
         tv_y_velocity.setText("Y: " + String.valueOf(latitude_speed));
     }*/
 
-    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, String pattern){
-        TextView tv = (TextView) endpointLayout.getChildAt(0);
-        tv.setText("Pattern: " + pattern);
-    }
-
+    // Elimina el LinearLayout de un punto de conexión que se ha desconectado
     public static void removeEndpointLayout(Activity activity, LinearLayout endpointLayout){
         LinearLayout ll = activity.findViewById(R.id.linear_layout);
         ll.removeView(endpointLayout);
