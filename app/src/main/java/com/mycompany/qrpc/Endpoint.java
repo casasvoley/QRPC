@@ -22,6 +22,9 @@ public class Endpoint {
     // Última velocidad en sentido de la latitud conocida
     private double lastLatitudeSpeed;
 
+    // Distancia entre este punto de conexión y el dispositivo
+    private double distance;
+
     public Endpoint(String id, LinearLayout linearlayout){
         this.id = id;
         this.linearlayout = linearlayout;
@@ -48,4 +51,8 @@ public class Endpoint {
     public void setLastLongitudeSpeed(double d) {this.lastLongitudeSpeed = d;}
 
     public void setLastLatitudeSpeed(double d) {this.lastLatitudeSpeed = d;}
+
+    public double getDistance() {return distance;}
+
+    public void setDistance(double distance) {this.distance = distance;}
 }

@@ -8,11 +8,13 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -118,11 +120,18 @@ public class MainActivity extends AppCompatActivity {
                     referenceInfo.put("longitude_speed", longitude_speed);
                     referenceInfo.put("latitude_speed", latitude_speed);
 
-                    // Actualizamos la UI
+                    // Calculamos la distancia al punto de conexión
+                    double distance = distanceToEndpoint(referenceInfo.get("longitude"), referenceInfo.get("latitude"));
+                    e.setDistance(distance);
+
+                    // Actualizamos el orden en el que se muestran los puntos de conexión
+                    UIModule.updateEndpointOrder(activity, communicationModule.getEndpoints());
+
+                    // Actualizamos el patrón del punto de conexión
                     LinearLayout ll = e.getLinearlayout();
                     if (ll != null){
-                        String pattern = PatternLogicModule.calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
-                        UIModule.updateEndpointLayout(activity, ll, pattern);
+                        int patternId = PatternLogicModule.calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
+                        if (patternId != -1) UIModule.updateEndpointLayout(activity, ll, patternId);
                         /*UIModule.updateEndpointLayout(activity,ll,
                                 longitude,latitude,
                                 longitude_speed,latitude_speed);*/
@@ -159,9 +168,11 @@ public class MainActivity extends AppCompatActivity {
                     // Creamos el LinearLayout donde se mostrará la información sobre este punto de conexión
                     LinearLayout ll_endpoint = new LinearLayout(activity);
                     ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
-                    TextView pattern_view = new TextView(activity);
-                    pattern_view.setText("Pattern:");
-                    pattern_view.setTextSize(TypedValue.COMPLEX_UNIT_PT, 15);
+                    TextView text_view = new TextView(activity);
+                    text_view.setText("Pattern:");
+                    text_view.setTextSize(TypedValue.COMPLEX_UNIT_PT, 15);
+                    ll_endpoint.addView(text_view);
+                    ImageView pattern_view = new ImageView(activity);
                     ll_endpoint.addView(pattern_view);
                     /*TextView lon = new TextView(activity);
                     lon.setText("Lon: 0");
@@ -304,5 +315,11 @@ public class MainActivity extends AppCompatActivity {
         communicationModule.disconnect();
         gpsModule.stopLocationUpdates();
         UIModule.resetGUI(this);
+    }
+
+    // Calcula la distancia entre el dispositivo y un punto de conexión,
+    // sabiendo su longitud y su latitud
+    public double distanceToEndpoint(double longitud, double latitud) {
+        // Ver fórmulas de Vincenty
     }
 }

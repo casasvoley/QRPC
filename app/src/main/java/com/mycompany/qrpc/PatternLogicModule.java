@@ -6,10 +6,10 @@ public class PatternLogicModule {
 
     private final static int error = 5;
 
-    public static String calculateAtomicPattern(Map<String,Double> targetInfo, Map<String,Double> referenceInfo) {
+    public static int calculateAtomicPattern(Map<String,Double> targetInfo, Map<String,Double> referenceInfo) {
 
         // Comprobamos que no hay valores nulos en los mapas
-        if (targetInfo.containsValue(null) || referenceInfo.containsValue(null)) return "";
+        if (targetInfo.containsValue(null) || referenceInfo.containsValue(null)) return -1;
 
         // Vector de dirección de nuestro dispositivo
         double[] v1 = new double[]{targetInfo.get("longitude_speed"),
@@ -63,13 +63,13 @@ public class PatternLogicModule {
 
                 if (anglesEqual(alpha,0)) {
                     // Resultado: tipo  ↑_+
-                    return "U_+";
+                    return R.drawable.pattern_1;
                 } else {
                     // Tipos ↑↑, ↑_-
 
                     if (anglesEqual(alpha,180)) {
                         // Resultado: tipo  ↑_-
-                        return "U_-";
+                        return R.drawable.pattern_2;
                     } else {
                         // Tipos ↑↑
 
@@ -78,10 +78,10 @@ public class PatternLogicModule {
 
                             if (beta_sign > 0){
                                 // Resultado: tipo  ↑↑_{+0}
-                                return "UU_{+0}";
+                                return R.drawable.pattern_3;
                             } else {
                                 // Resultado: tipo  ↑↑_{-0}
-                                return "UU_{-0}";
+                                return R.drawable.pattern_4;
                             }
                         } else {
                             // Tipos ↑↑_{--}, ↑↑_{+-}, ↑↑_{-+}, ↑↑_{++}
@@ -91,20 +91,20 @@ public class PatternLogicModule {
 
                                 if (beta_sign > 0){
                                     // Resultado: tipo  ↑↑_{+-}
-                                    return "UU_{+-}";
+                                    return R.drawable.pattern_5;
                                 } else {
                                     // Resultado: tipo  ↑↑_{--}
-                                    return "UU_{--}";
+                                    return R.drawable.pattern_6;
                                 }
                             } else {
                                 // Tipos ↑↑_{-+}, ↑↑_{++}
 
                                 if (beta_sign > 0){
                                     // Resultado: tipo  ↑↑_{++}
-                                    return "UU_{++}";
+                                    return R.drawable.pattern_7;
                                 } else {
                                     // Resultado: tipo  ↑↑_{-+}
-                                    return "UU_{-+}";
+                                    return R.drawable.pattern_8;
                                 }
                             }
                         }
@@ -121,10 +121,10 @@ public class PatternLogicModule {
 
                         if (beta_sign > 0) {
                             // Resultado: tipo  X_+^{+0}
-                            return "X_+^{+0}";
+                            return R.drawable.pattern_9;
                         } else {
                             // Resultado: tipo  X_-^{+0}
-                            return "X_-^{+0}";
+                            return R.drawable.pattern_10;
                         }
                     } else {
                         // Tipos X^{++}
@@ -134,10 +134,10 @@ public class PatternLogicModule {
 
                             if (beta_sign > 0) {
                                 // Resultado: tipo  X_{+0}^{++}
-                                return "X_{+0}^{++}";
+                                return R.drawable.pattern_11;
                             } else {
                                 // Resultado: tipo  X_{-0}^{++}
-                                return "X_{-0}^{++}";
+                                return R.drawable.pattern_12;
                             }
                         } else {
                             // Tipos X_{++}^{++}, X_{+-}^{++}, X_{-+}^{++}, X_{--}^{++}
@@ -147,20 +147,20 @@ public class PatternLogicModule {
 
                                 if (beta_sign > 0) {
                                     // Resultado: tipo  X_{+-}^{++}
-                                    return "X_{+-}^{++}";
+                                    return R.drawable.pattern_13;
                                 } else {
                                     // Resultado: tipo  X_{--}^{++}
-                                    return "X_{--}^{++}";
+                                    return R.drawable.pattern_14;
                                 }
                             } else {
                                 // Tipos X_{-+}^{++}, X_{++}^{++}
 
                                 if (beta_sign > 0) {
                                     // Resultado: tipo  X_{++}^{++}
-                                    return "X_{++}^{++}";
+                                    return R.drawable.pattern_15;
                                 } else {
                                     // Resultado: tipo  X_{-+}^{++}
-                                    return "X_{-+}^{++}";
+                                    return R.drawable.pattern_16;
                                 }
                             }
                         }
@@ -173,10 +173,10 @@ public class PatternLogicModule {
 
                         if (beta_sign > 0) {
                             // Resultado: tipo  X_{-|+-}^{0-}
-                            return "X_{-|+-}^{0-}";
+                            return R.drawable.pattern_17;
                         } else {
                             // Resultado: tipo  X_{+|--}^{0-}
-                            return "X_{+|--}^{0-}";
+                            return R.drawable.pattern_18;
                         }
                     } else {
                         // Tipos X^{--}
@@ -186,10 +186,10 @@ public class PatternLogicModule {
 
                             if (beta_sign > 0) {
                                 // Resultado: tipo  X_{+0}^{--}
-                                return "X_{+0}^{--}";
+                                return R.drawable.pattern_19;
                             } else {
                                 // Resultado: tipo  X_{-0}^{--}
-                                return "X_{-0}^{--}";
+                                return R.drawable.pattern_20;
                             }
                         } else {
                             // Tipos X_{++}^{--}, X_{+-}^{--}, X_{-+}^{--}, X_{--}^{--}
@@ -199,19 +199,19 @@ public class PatternLogicModule {
 
                                 if (beta_sign > 0) {
                                     // Resultado: tipo  X_{+-}^{--}
-                                    return "X_{+-}^{--}";
+                                    return R.drawable.pattern_21;
                                 } else {
                                     // Resultado: tipo  X_{--}^{--}
-                                    return "X_{--}^{--}";
+                                    return R.drawable.pattern_22;
                                 }
                             } else {
                                 // Tipos X_{-+}^{--}, X_{++}^{--}
                                 if (beta_sign > 0) {
                                     // Resultado: tipo  X_{++}^{--}
-                                    return "X_{++}^{--}";
+                                    return R.drawable.pattern_23;
                                 } else {
                                     // Resultado: tipo  X_{-+}^{--}
-                                    return "X_{-+}^{--}";
+                                    return R.drawable.pattern_24;
                                 }
                             }
                         }
@@ -229,10 +229,10 @@ public class PatternLogicModule {
 
                     if (beta_sign > 0) {
                         // Resultado: tipo  ↑↓_{+0}
-                        return "UD_{+0}";
+                        return R.drawable.pattern_25;
                     } else {
                         // Resultado: tipo  ↑↓_{-0}
-                        return "UD_{-0}";
+                        return R.drawable.pattern_26;
                     }
                 } else {
                     // Tipos ↑↓_{±±}, ↕
@@ -242,16 +242,16 @@ public class PatternLogicModule {
 
                         if (beta_sign == 0) {
                             // Resultado: tipo  ↕_+
-                            return "B_+";
+                            return R.drawable.pattern_27;
                         } else {
                             // Tipos ↑↓_{±+}
 
                             if (beta_sign > 0) {
                                 // Resultado: tipo  ↑↓_{++}
-                                return "UD_{++}";
+                                return R.drawable.pattern_28;
                             } else {
                                 // Resultado: tipo  ↑↓_{-+}
-                                return "UD_{-+}";
+                                return R.drawable.pattern_29;
                             }
                         }
                     } else {
@@ -259,16 +259,16 @@ public class PatternLogicModule {
 
                         if (alpha_sign == 0) {
                             // Resultado: tipo  ↕_-
-                            return "B_-";
+                            return R.drawable.pattern_30;
                         } else {
                             // Tipos ↑↓_{±-}
 
                             if (beta_sign > 0) {
                                 // Resultado: tipo  ↑↓_{+-}
-                                return "UD_{+-}";
+                                return R.drawable.pattern_31;
                             } else {
                                 // Resultado: tipo  ↑↓_{--}
-                                return "UD_{--}";
+                                return R.drawable.pattern_32;
                             }
                         }
                     }
@@ -284,10 +284,10 @@ public class PatternLogicModule {
 
                         if (beta_sign > 0) {
                             // Resultado: tipo  X_{+0}^{+-}
-                            return "X_{+0}^{+-}";
+                            return R.drawable.pattern_33;
                         } else {
                             // Resultado: tipo  X_{-0}^{+-}
-                            return "X_{-0}^{+-}";
+                            return R.drawable.pattern_34;
                         }
                     } else {
                         // Tipos X_{±±}^{+-}
@@ -297,20 +297,20 @@ public class PatternLogicModule {
 
                             if (beta_sign > 0) {
                                 // Resultado: tipo  X_{++}^{+-}
-                                return "X_{++}^{+-}";
+                                return R.drawable.pattern_35;
                             } else {
                                 // Resultado: tipo  X_{-+}^{+-}
-                                return "X_{-+}^{+-}";
+                                return R.drawable.pattern_36;
                             }
                         } else {
                             // Tipos X_{--}^{+-}, X_{+-}^{+-}
 
                             if (beta_sign > 0) {
                                 // Resultado: tipo  X_{+-}^{+-}
-                                return "X_{+-}^{+-}";
+                                return R.drawable.pattern_37;
                             } else {
                                 // Resultado: tipo  X_{--}^{+-}
-                                return "X_{--}^{+-}";
+                                return R.drawable.pattern_38;
                             }
                         }
                     }
@@ -322,10 +322,10 @@ public class PatternLogicModule {
 
                         if (beta_sign > 0) {
                             // Resultado: tipo  X_{+0}^{-+}
-                            return "X_{+0}^{-+}";
+                            return R.drawable.pattern_39;
                         } else {
                             // Resultado: tipo  X_{-0}^{-+}
-                            return "X_{-0}^{-+}";
+                            return R.drawable.pattern_40;
                         }
                     } else {
                         // Tipos X_{±±}^{-+}, X^{0+}, X^{-0}
@@ -338,20 +338,20 @@ public class PatternLogicModule {
 
                                 if (alpha_sign > 0) {
                                     // Resultado: tipo  X_{+|-+}^{0+}
-                                    return "X_{+|-+}^{0+}";
+                                    return R.drawable.pattern_41;
                                 } else {
                                     // Resultado: tipo  X_{-|++}^{0+}
-                                    return "X_{-|++}^{0+}";
+                                    return R.drawable.pattern_42;
                                 }
                             } else {
                                 // Tipos X_{-+}^{-+}, X_{++}^{-+}
 
                                 if (beta_sign > 0) {
                                     // Resultado: tipo  X_{++}^{-+}
-                                    return "X_{++}^{-+}";
+                                    return R.drawable.pattern_43;
                                 } else {
                                     // Resultado: tipo  X_{-+}^{-+}
-                                    return "X_{-+}^{-+}";
+                                    return R.drawable.pattern_44;
                                 }
                             }
                         } else {
@@ -362,20 +362,20 @@ public class PatternLogicModule {
 
                                 if (beta_sign > 0) {
                                     // Resultado: tipo  X_+^{-0}
-                                    return "X_+^{-0}";
+                                    return R.drawable.pattern_45;
                                 } else {
                                     // Resultado: tipo  X_-^{-0}
-                                    return "X_-^{-0}";
+                                    return R.drawable.pattern_46;
                                 }
                             } else {
                                 // Tipos X_{--}^{-+}, X_{+-}^{-+}
 
                                 if (beta_sign > 0) {
                                     // Resultado: tipo  X_{+-}^{-+}
-                                    return "X_{+-}^{-+}";
+                                    return R.drawable.pattern_47;
                                 } else {
                                     // Resultado: tipo  X_{--}^{-+}
-                                    return "X_{--}^{-+}";
+                                    return R.drawable.pattern_48;
                                 }
                             }
                         }

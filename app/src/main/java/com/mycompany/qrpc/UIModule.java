@@ -3,8 +3,11 @@ package com.mycompany.qrpc;
 import android.app.Activity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import java.util.ArrayList;
 
 public class UIModule {
 
@@ -36,9 +39,9 @@ public class UIModule {
     }
 
     // Actualiza los valores de el LinearLayout de un punto de conexión
-    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, String pattern){
-        TextView tv = (TextView) endpointLayout.getChildAt(0);
-        tv.setText("Pattern: " + pattern);
+    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, int patternId){
+        ImageView pattern_view = (ImageView) endpointLayout.getChildAt(1);
+        pattern_view.setImageResource(patternId);
     }
     /*public static void updateEndpointLayout(Activity activity, LinearLayout endpoint,
                                             double longitude, double latitude,
@@ -60,5 +63,12 @@ public class UIModule {
     public static void removeEndpointLayout(Activity activity, LinearLayout endpointLayout){
         LinearLayout ll = activity.findViewById(R.id.linear_layout);
         ll.removeView(endpointLayout);
+    }
+
+    // Actualiza el orden en el que aparecen los puntos de conexión en la UI
+    public static void updateEndpointOrder(Activity activity, ArrayList<Endpoint> endpoints){
+        // PENSAR COMO HACER QUICKSORT CON EL ARRAYLIST DE ENDPOINTS
+
+        LinearLayout linearlayout = activity.findViewById(R.id.linear_layout);
     }
 }

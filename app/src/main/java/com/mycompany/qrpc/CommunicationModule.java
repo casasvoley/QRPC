@@ -124,4 +124,6 @@ public class CommunicationModule {
         endpoints.add(new Endpoint(endpointId, ll_endpoint));
     }
 
+    // Devuelve la lista de puntos de conexión
+    public ArrayList<Endpoint> getEndpoints() {return endpoints;}
 }
