@@ -9,6 +9,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -121,14 +122,16 @@ public class MainActivity extends AppCompatActivity {
                     referenceInfo.put("latitude_speed", latitude_speed);
 
                     // Calculamos la distancia al punto de conexión
-                    double distance = distanceToEndpoint(referenceInfo.get("longitude"), referenceInfo.get("latitude"));
-                    e.setDistance(distance);
+                    Map<String, Double> targetInfo = gpsModule.getCoordinates();
+                    float[] distance = {0};
+                    Location.distanceBetween(referenceInfo.get("latitude"), referenceInfo.get("longitude"), targetInfo.get("latitude"), targetInfo.get("longitude"), distance);
+                    e.setDistance(distance[0]);
 
                     // Actualizamos el orden en el que se muestran los puntos de conexión
                     UIModule.updateEndpointOrder(activity, communicationModule.getEndpoints());
 
                     // Actualizamos el patrón del punto de conexión
-                    LinearLayout ll = e.getLinearlayout();
+                    LinearLayout ll = e.getEndpointlayout();
                     if (ll != null){
                         int patternId = PatternLogicModule.calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
                         if (patternId != -1) UIModule.updateEndpointLayout(activity, ll, patternId);
@@ -203,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
             public void onDisconnected(@NonNull String endpointId) {
                 // El punto de conexión se ha desconectado
                 Log.i(TAG, "onDisconnected: Ha habido una desconexión del punto de conexión");
-                LinearLayout ll = communicationModule.getEndpoint(endpointId).getLinearlayout();
+                LinearLayout ll = communicationModule.getEndpoint(endpointId).getEndpointlayout();
                 if (ll != null){
                     UIModule.removeEndpointLayout(activity,ll);
                 }
@@ -310,16 +313,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Desactiva la comunicación y el cálculo de la ubicación
-    public void disconnect(View view){
+    public void disconnect(View view) {
         Log.i(TAG, "Comunicación desactivada");
         communicationModule.disconnect();
         gpsModule.stopLocationUpdates();
         UIModule.resetGUI(this);
-    }
-
-    // Calcula la distancia entre el dispositivo y un punto de conexión,
-    // sabiendo su longitud y su latitud
-    public double distanceToEndpoint(double longitud, double latitud) {
-        // Ver fórmulas de Vincenty
     }
 }

@@ -2,13 +2,13 @@ package com.mycompany.qrpc;
 
 import android.widget.LinearLayout;
 
-public class Endpoint {
+public class Endpoint{
 
     // ID
     private String id;
 
     // LinearLayout de la UI donde se muestra información sobre este punto de conexión
-    private LinearLayout linearlayout;
+    private LinearLayout layout;
 
     // Última longitud conocida
     private double lastLongitude;
@@ -23,18 +23,18 @@ public class Endpoint {
     private double lastLatitudeSpeed;
 
     // Distancia entre este punto de conexión y el dispositivo
-    private double distance;
+    private float distance;
 
     public Endpoint(String id, LinearLayout linearlayout){
         this.id = id;
-        this.linearlayout = linearlayout;
+        this.layout = linearlayout;
     }
 
-    public String getId(){
-        return id;
-    }
+    public String getId(){return id;}
 
-    public LinearLayout getLinearlayout() { return linearlayout; }
+    public LinearLayout getEndpointlayout() {return layout;}
+
+    public void setEndpointlayout(LinearLayout ll) {this.layout = ll;}
 
     public double getLastLongitude() {return lastLongitude;}
 
@@ -52,7 +52,7 @@ public class Endpoint {
 
     public void setLastLatitudeSpeed(double d) {this.lastLatitudeSpeed = d;}
 
-    public double getDistance() {return distance;}
+    public float getDistance() {return distance;}
 
-    public void setDistance(double distance) {this.distance = distance;}
+    public void setDistance(float distance) {this.distance = distance;}
 }

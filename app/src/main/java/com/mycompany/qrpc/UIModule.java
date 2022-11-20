@@ -8,6 +8,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class UIModule {
 
@@ -67,8 +69,23 @@ public class UIModule {
 
     // Actualiza el orden en el que aparecen los puntos de conexión en la UI
     public static void updateEndpointOrder(Activity activity, ArrayList<Endpoint> endpoints){
-        // PENSAR COMO HACER QUICKSORT CON EL ARRAYLIST DE ENDPOINTS
 
-        LinearLayout linearlayout = activity.findViewById(R.id.linear_layout);
+        if (endpoints.size() > 1) {
+            LinearLayout mainLayout = activity.findViewById(R.id.linear_layout);
+            int numEndpoints = endpoints.size();
+
+            Collections.sort(endpoints, new Comparator<Endpoint>() {
+                @Override
+                public int compare(Endpoint o1, Endpoint o2) {
+                    return Float.compare(o1.getDistance(), o2.getDistance());
+                }
+            });
+
+            LinearLayout linearLayout = new LinearLayout(activity);
+            for (int i = 0; i < numEndpoints; i++) {
+                linearLayout.addView(endpoints.get(i).getEndpointlayout());
+            }
+            mainLayout = linearLayout;
+        }
     }
 }
