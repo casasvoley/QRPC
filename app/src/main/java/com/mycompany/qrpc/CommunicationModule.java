@@ -8,6 +8,7 @@ import androidx.annotation.NonNull;
 
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
+import com.google.android.gms.nearby.connection.ConnectionInfo;
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
 import com.google.android.gms.nearby.connection.ConnectionsClient;
 import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo;
@@ -26,8 +27,8 @@ public class CommunicationModule {
     // Cliente de conexiones
     private ConnectionsClient connectionsClient;
 
-    // Id del dispositivo
-    private final String id = "Endpoint " + (Math.random() * 200);
+    // Id de instalación del dispositivo
+    private String installationId;
 
     // Nombre del paquete
     private String packageName;
@@ -37,6 +38,9 @@ public class CommunicationModule {
 
     // Datos de las conexiones
     private ArrayList<Endpoint> endpoints;
+
+    // Datos de los endpoints que aún no tienen una conexión establecida
+    private ArrayList<Endpoint> tempEndpoints;
 
     // Actividad principal
     private Activity activity;
@@ -59,28 +63,29 @@ public class CommunicationModule {
                     Log.i(TAG, "onEndpointFound: Punto de conexión encontrado");
 
                     // Pedimos conectar al punto de conexión encontrado
-                    connectionsClient.requestConnection(id, endpointId, connectionLifecycleCallback);
+                    connectionsClient.requestConnection(installationId, endpointId, connectionLifecycleCallback);
                 }
 
                 @Override
                 public void onEndpointLost(@NonNull String endpointId) {}
             };
 
-    public CommunicationModule(Activity activity, PayloadCallback payloadCallback, ConnectionLifecycleCallback connectionLifecycleCallback){
+    public CommunicationModule(Activity activity, String installationId, PayloadCallback payloadCallback, ConnectionLifecycleCallback connectionLifecycleCallback){
         // Creamos un cliente de conexiones
         this.connectionsClient = Nearby.getConnectionsClient(activity);
-
+        this.installationId = installationId;
         this.packageName = activity.getPackageName();
         this.activity = activity;
         this.payloadCallback = payloadCallback;
         this.connectionLifecycleCallback = connectionLifecycleCallback;
         this.endpoints = new ArrayList<Endpoint>();
+        this.tempEndpoints = new ArrayList<Endpoint>();
     }
 
     // Comienza a emitir anuncios de nuestra presencia y a buscar otros puntos de conexión
     public void connect() {
         connectionsClient.startAdvertising(
-                id, packageName, connectionLifecycleCallback,
+                installationId, packageName, connectionLifecycleCallback,
                 new AdvertisingOptions.Builder().setStrategy(STRATEGY).build());
         connectionsClient.startDiscovery(
                 packageName, endpointDiscoveryCallback,
@@ -114,16 +119,62 @@ public class CommunicationModule {
         return endpoint;
     }
 
+    // Devuelve el punto de conexión a la espera de conexión con la ID dada
+    public Endpoint getTempEndpoint(String endpointId){
+
+        Endpoint endpoint = null;
+        for (Endpoint e : tempEndpoints){
+            if (e.getId().equals(endpointId)){
+                endpoint = e;
+            }
+        }
+        return endpoint;
+    }
+
     // Acepta la conexión con un nuevo punto de conexión que se ha encontrado
     public void acceptConnection(String endpointId) {
         connectionsClient.acceptConnection(endpointId, payloadCallback);
     }
 
-    // Añade un nuevo punto de conexión
-    public void addEndpoint(String endpointId, LinearLayout ll_endpoint) {
-        endpoints.add(new Endpoint(endpointId, ll_endpoint));
+    // Añade un nuevo punto de conexión con una conexión establecida
+    public void addEndpoint(String endpointId, String endpointDevId, LinearLayout ll_endpoint) {
+        endpoints.add(new Endpoint(endpointId, endpointDevId, ll_endpoint));
+    }
+
+    // Convierte un punto de conexión de temporal a permanente porque ya ha se establecido una conexión
+    public void saveEndpoint(String endpointId, LinearLayout ll_endpoint) {
+        Endpoint endpoint = getTempEndpoint(endpointId);
+        endpoint.setEndpointlayout(ll_endpoint);
+        endpoints.add(endpoint);
+        removeTempEndpoint(endpoint);
+    }
+
+    // Añade un nuevo punto de conexión a la espera de que se establezca una conexión
+    public void addTempEndpoint(String endpointId, String endpointDevId, LinearLayout ll_endpoint) {
+        tempEndpoints.add(new Endpoint(endpointId, endpointDevId, ll_endpoint));
     }
 
     // Devuelve la lista de puntos de conexión
     public ArrayList<Endpoint> getEndpoints() {return endpoints;}
+
+    // Elimina un punto de conexión
+    public void removeEndpoint(String endpointId){
+        Endpoint endpoint = null;
+        for (Endpoint e : endpoints){
+            if (e.getId().equals(endpointId)){
+                endpoint = e;
+            }
+        }
+        endpoints.remove(endpoint);
+    }
+
+    // Elimina un punto de conexión temporal
+    public void removeTempEndpoint(Endpoint e){
+        tempEndpoints.remove(e);
+    }
+
+    // Comprueba si hay puntos de conexión con conexiones establecidas
+    public boolean isThereConnections() {
+        return !endpoints.isEmpty();
+    }
 }

@@ -4,8 +4,11 @@ import android.widget.LinearLayout;
 
 public class Endpoint{
 
-    // ID
+    // ID de punto de conexión
     private String id;
+
+    // ID de dispositivo
+    private String devId;
 
     // LinearLayout de la UI donde se muestra información sobre este punto de conexión
     private LinearLayout layout;
@@ -25,12 +28,19 @@ public class Endpoint{
     // Distancia entre este punto de conexión y el dispositivo
     private float distance;
 
-    public Endpoint(String id, LinearLayout linearlayout){
+    // Último patrón calculado con respecto a este punto de conexión
+    private String lastPattern;
+
+    public Endpoint(String id, String devId, LinearLayout linearlayout){
         this.id = id;
+        this.devId = devId;
         this.layout = linearlayout;
+        this.lastPattern = "";
     }
 
     public String getId(){return id;}
+
+    public String getDevId() {return devId;}
 
     public LinearLayout getEndpointlayout() {return layout;}
 
@@ -55,4 +65,8 @@ public class Endpoint{
     public float getDistance() {return distance;}
 
     public void setDistance(float distance) {this.distance = distance;}
+
+    public String getLastPattern() {return lastPattern;}
+
+    public void setLastPattern(String lastPattern) {this.lastPattern = lastPattern;}
 }

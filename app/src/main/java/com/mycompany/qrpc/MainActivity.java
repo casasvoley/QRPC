@@ -31,11 +31,29 @@ import com.google.android.gms.nearby.connection.ConnectionResolution;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
+import java.util.AbstractMap;
+import java.util.AbstractMap.SimpleEntry;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TimeZone;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -88,15 +106,50 @@ public class MainActivity extends AppCompatActivity {
     // Módulo de comunicaciones
     CommunicationModule communicationModule;
 
+    // Instancia de la base de datos
+    FirebaseFirestore db;
+
+    // Identificador de la instalación
+    String installationId;
+
     @Override
     protected void onCreate(Bundle bundle) {
+        // Obtenemos el identificador de instalación
+        installationId = Installation.id(this);
+
+        // Instanciamos la base de datos
+        db = FirebaseFirestore.getInstance();
+
+        // Create a new user with a first and last name
+        Map<String, Object> user = new HashMap<>();
+        user.put("first", "Ada");
+        user.put("last", "Lovelace");
+        user.put("born", 1815);
+
+        // Add a new document with a generated ID
+        db.collection("users")
+                .add(user)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error adding document", e);
+                    }
+                });
+
+
         super.onCreate(bundle);
         setContentView(R.layout.main_layout);
 
         // Instanciamos módulo de comunicaciones
-        communicationModule = new CommunicationModule(this, new PayloadCallback() {
+        communicationModule = new CommunicationModule(this, installationId, new PayloadCallback() {
             @Override
-            public void onPayloadReceived(@NonNull String endpointId, Payload payload) {
+            public void onPayloadReceived(@NonNull String endpointId, @NonNull Payload payload) {
                 try {
                     Log.i(TAG,"onPayloadReceived: Paquete recibido: " + endpointId);
 
@@ -133,11 +186,26 @@ public class MainActivity extends AppCompatActivity {
                     // Actualizamos el patrón del punto de conexión
                     LinearLayout ll = e.getEndpointlayout();
                     if (ll != null){
-                        int patternId = PatternLogicModule.calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
-                        if (patternId != -1) UIModule.updateEndpointLayout(activity, ll, patternId);
-                        /*UIModule.updateEndpointLayout(activity,ll,
-                                longitude,latitude,
-                                longitude_speed,latitude_speed);*/
+                        String pattern = PatternLogicModule.calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
+                        if (!pattern.equals("")) {
+                            // Comprobamos si el patrón es distinto al último calculado
+                            String lastPattern = e.getLastPattern();
+                            if(!pattern.equals(lastPattern)){
+                                // Si es distinto, actualizamos la UI con el nuevo patrón
+                                UIModule.updateEndpointLayout(activity, ll, pattern);
+                                // Actualizamos el último patrón calculado
+                                e.setLastPattern(pattern);
+                                // Y lo añadimos a la base de datos
+                                Date date = new Date();
+                                DateFormat df = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+                                df.setTimeZone(TimeZone.getTimeZone("Europe/Madrid"));
+                                Map<String, Object> dbDocument = new HashMap<>();
+                                dbDocument.put("pattern", pattern);
+                                dbDocument.put("date-time", df.format(date));
+                                db.collection(installationId).document(e.getDevId()).collection("pattern_history").document(String.valueOf(date.getTime())).set(dbDocument);
+                            }
+
+                        }
                     }
 
                     // Actualizamos la posición del punto de conexión guardada
@@ -159,6 +227,9 @@ public class MainActivity extends AppCompatActivity {
                 // Aceptamos la conexión
                 Log.i(TAG, "onConnectionInitiated: Aceptando conexión");
                 communicationModule.acceptConnection(endpointId);
+
+                // Añadimos el punto de conexión que está esperando a establecer conexión
+                communicationModule.addTempEndpoint(endpointId, connectionInfo.getEndpointName(), null);
             }
 
             @Override
@@ -172,29 +243,20 @@ public class MainActivity extends AppCompatActivity {
                     LinearLayout ll_endpoint = new LinearLayout(activity);
                     ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
                     TextView text_view = new TextView(activity);
-                    text_view.setText("Pattern:");
+                    text_view.setText(endpointId + ": ");
                     text_view.setTextSize(TypedValue.COMPLEX_UNIT_PT, 15);
                     ll_endpoint.addView(text_view);
                     ImageView pattern_view = new ImageView(activity);
+                    pattern_view.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                    pattern_view.setAdjustViewBounds(true);
+                    pattern_view.setMaxHeight(500);
                     ll_endpoint.addView(pattern_view);
-                    /*TextView lon = new TextView(activity);
-                    lon.setText("Lon: 0");
-                    ll_endpoint.addView(lon);
-                    TextView lat = new TextView(activity);
-                    lat.setText("Lat: 0");
-                    ll_endpoint.addView(lat);
-                    TextView bear = new TextView(activity);
-                    bear.setText("Bear: 0");
-                    ll_endpoint.addView(bear);
-                    TextView sp = new TextView(activity);
-                    sp.setText("Sp: 0");
-                    ll_endpoint.addView(sp);*/
 
                     // Añadimos el LinearLayout a la UI
                     UIModule.addEndpointLayout(activity, ll_endpoint);
 
-                    // Guardamos el punto de conexión
-                    communicationModule.addEndpoint(endpointId, ll_endpoint);
+                    // Guardamos el punto de conexión que ya ha establecido su conexión
+                    communicationModule.saveEndpoint(endpointId, ll_endpoint);
 
                 // Si la conexión falla
                 } else {
@@ -210,6 +272,7 @@ public class MainActivity extends AppCompatActivity {
                 if (ll != null){
                     UIModule.removeEndpointLayout(activity,ll);
                 }
+                communicationModule.removeEndpoint(endpointId);
             }
         });
 
@@ -217,14 +280,18 @@ public class MainActivity extends AppCompatActivity {
         gpsModule = new GPSModule(this, location -> {
             Log.i(TAG,"onLocationResult: Ubicación medida satisfactoriamente: " + location.getLongitude());
 
-            // Enviamos nuestra ubicación como un Map
+            // Convertimos las coordenadas en un Map
             Map<String, Double> coordinates = new HashMap<>();
             coordinates.put("longitude", location.getLongitude());
             coordinates.put("latitude", location.getLatitude());
-            try {
-                communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
-            } catch (IOException e) {
-                Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+
+            // Enviamos nuestra ubicación como un Map si hay conexiones establecidas
+            if (communicationModule.isThereConnections()) {
+                try {
+                    communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
+                } catch (IOException e) {
+                    Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+                }
             }
 
             // Accedemos a las coordenadas que tiene guardadas el GPSModule

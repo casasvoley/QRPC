@@ -1,17 +1,74 @@
 package com.mycompany.qrpc;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.graphics.BitmapFactory;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Map;
 
 public class UIModule {
+
+    // HashMap con los iconos de los patrones
+    private static Map<String,Integer> patterns = Map.ofEntries(
+            new AbstractMap.SimpleEntry<String,Integer>("↑_+", R.drawable.pattern_1),
+            new AbstractMap.SimpleEntry<String,Integer>("↑_-", R.drawable.pattern_2),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↑_{+0}", R.drawable.pattern_3),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↑_{-0}", R.drawable.pattern_4),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↑_{+-}", R.drawable.pattern_5),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↑_{--}", R.drawable.pattern_6),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↑_{++}", R.drawable.pattern_7),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↑_{-+}", R.drawable.pattern_8),
+            new AbstractMap.SimpleEntry<String,Integer>("X_+^{+0}", R.drawable.pattern_9),
+            new AbstractMap.SimpleEntry<String,Integer>("X_-^{+0}", R.drawable.pattern_10),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+0}^{++}", R.drawable.pattern_11),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-0}^{++}", R.drawable.pattern_12),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+-}^{++}", R.drawable.pattern_13),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{--}^{++}", R.drawable.pattern_14),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{++}^{++}", R.drawable.pattern_15),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-+}^{++}", R.drawable.pattern_16),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-|+-}^{0-}", R.drawable.pattern_17),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+|--}^{0-}", R.drawable.pattern_18),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+0}^{--}", R.drawable.pattern_19),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-0}^{--}", R.drawable.pattern_20),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+-}^{--}", R.drawable.pattern_21),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{--}^{--}", R.drawable.pattern_22),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{++}^{--}", R.drawable.pattern_23),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-+}^{--}", R.drawable.pattern_24),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↓_{+0}", R.drawable.pattern_25),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↓_{-0}", R.drawable.pattern_26),
+            new AbstractMap.SimpleEntry<String,Integer>("↕_+", R.drawable.pattern_27),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↓_{++}", R.drawable.pattern_28),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↓_{-+}", R.drawable.pattern_29),
+            new AbstractMap.SimpleEntry<String,Integer>("↕_-", R.drawable.pattern_30),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↓_{+-}", R.drawable.pattern_31),
+            new AbstractMap.SimpleEntry<String,Integer>("↑↓_{--}", R.drawable.pattern_32),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+0}^{+-}", R.drawable.pattern_33),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-0}^{+-}", R.drawable.pattern_34),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{++}^{+-}", R.drawable.pattern_35),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-+}^{+-}", R.drawable.pattern_36),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+-}^{+-}", R.drawable.pattern_37),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{--}^{+-}", R.drawable.pattern_38),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+0}^{-+}", R.drawable.pattern_39),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-0}^{-+}", R.drawable.pattern_40),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+|-+}^{0+}", R.drawable.pattern_41),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-|++}^{0+}", R.drawable.pattern_42),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{++}^{-+}", R.drawable.pattern_43),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{-+}^{-+}", R.drawable.pattern_44),
+            new AbstractMap.SimpleEntry<String,Integer>("X_+^{-0}", R.drawable.pattern_45),
+            new AbstractMap.SimpleEntry<String,Integer>("X_-^{-0}", R.drawable.pattern_46),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{+-}^{-+}", R.drawable.pattern_47),
+            new AbstractMap.SimpleEntry<String,Integer>("X_{--}^{-+}", R.drawable.pattern_48)
+    );
 
     // Elimina el estado del juego y actualiza la GUI en consecuencia
     public static void resetGUI(Activity activity) {
@@ -21,10 +78,10 @@ public class UIModule {
     }
 
     // Muestra al usuario un mensaje de estado
-    public static void setStatusText(Activity activity,String text) {
-        TextView statusText = activity.findViewById(R.id.status);
-        statusText.setText(text);
-    }
+    //public static void setStatusText(Activity activity,String text) {
+    //    TextView statusText = activity.findViewById(R.id.status);
+    //    statusText.setText(text);
+    //}
 
     // Activa y desactiva los botones de la GUI en función de si la conexión está activada
     public static void setButtonState(Activity activity, boolean connected) {
@@ -41,9 +98,10 @@ public class UIModule {
     }
 
     // Actualiza los valores de el LinearLayout de un punto de conexión
-    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, int patternId){
+    @SuppressLint("UseCompatLoadingForDrawables")
+    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, String pattern){
         ImageView pattern_view = (ImageView) endpointLayout.getChildAt(1);
-        pattern_view.setImageResource(patternId);
+        pattern_view.setImageDrawable(activity.getResources().getDrawable(patterns.get(pattern)));
     }
     /*public static void updateEndpointLayout(Activity activity, LinearLayout endpoint,
                                             double longitude, double latitude,
@@ -83,7 +141,8 @@ public class UIModule {
 
             LinearLayout linearLayout = new LinearLayout(activity);
             for (int i = 0; i < numEndpoints; i++) {
-                linearLayout.addView(endpoints.get(i).getEndpointlayout());
+                LinearLayout endpointLayout = endpoints.get(i).getEndpointlayout();
+                linearLayout.addView(endpointLayout);
             }
             mainLayout = linearLayout;
         }
