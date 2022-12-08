@@ -98,19 +98,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static final int REQUEST_CODE_REQUIRED_PERMISSIONS = 1;
+    private static final int REQUEST_CODE = 1;
 
     // Módulo de GPS
-    GPSModule gpsModule;
+    private GPSModule gpsModule;
 
     // Módulo de comunicaciones
-    CommunicationModule communicationModule;
+    private CommunicationModule communicationModule;
 
     // Instancia de la base de datos
-    FirebaseFirestore db;
+    private FirebaseFirestore db;
 
     // Identificador de la instalación
-    String installationId;
+    private String installationId;
 
     @Override
     protected void onCreate(Bundle bundle) {
@@ -186,7 +186,8 @@ public class MainActivity extends AppCompatActivity {
                     // Actualizamos el patrón del punto de conexión
                     LinearLayout ll = e.getEndpointlayout();
                     if (ll != null){
-                        String pattern = PatternLogicModule.calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
+                        String pattern = PatternLogicModule
+                                .calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
                         if (!pattern.equals("")) {
                             // Comprobamos si el patrón es distinto al último calculado
                             String lastPattern = e.getLastPattern();
@@ -202,7 +203,9 @@ public class MainActivity extends AppCompatActivity {
                                 Map<String, Object> dbDocument = new HashMap<>();
                                 dbDocument.put("pattern", pattern);
                                 dbDocument.put("date-time", df.format(date));
-                                db.collection(installationId).document(e.getDevId()).collection("pattern_history").document(String.valueOf(date.getTime())).set(dbDocument);
+                                db.collection(installationId).document(e.getDevId())
+                                        .collection("pattern_history")
+                                        .document(String.valueOf(date.getTime())).set(dbDocument);
                             }
 
                         }
@@ -321,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
         // Comprobamos los permisos de la aplicación
         if (!hasPermissions(this, REQUIRED_PERMISSIONS)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_REQUIRED_PERMISSIONS);
+                requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE);
             }
         }
     }
@@ -354,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
             int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        if (requestCode != REQUEST_CODE_REQUIRED_PERMISSIONS) {
+        if (requestCode != REQUEST_CODE) {
             return;
         }
 

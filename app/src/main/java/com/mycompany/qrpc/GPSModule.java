@@ -38,7 +38,7 @@ public class GPSModule {
     private CurrentLocationRequest currentLocationRequest;
 
     // Actividad principal
-    Activity activity;
+    private Activity activity;
 
     // Ubicación actual
     private Map<String,Double> coordinates;
