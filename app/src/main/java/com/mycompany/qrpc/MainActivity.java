@@ -5,16 +5,22 @@ import static com.mycompany.qrpc.SerializationHelper.deserialize;
 import static com.mycompany.qrpc.SerializationHelper.serialize;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Service;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -39,6 +45,7 @@ import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -112,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
     // Identificador de la instalación
     private String installationId;
 
+    @SuppressLint("InvalidWakeLockTag")
     @Override
     protected void onCreate(Bundle bundle) {
         // Obtenemos el identificador de instalación
@@ -119,29 +127,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Instanciamos la base de datos
         db = FirebaseFirestore.getInstance();
-
-        // Create a new user with a first and last name
-        Map<String, Object> user = new HashMap<>();
-        user.put("first", "Ada");
-        user.put("last", "Lovelace");
-        user.put("born", 1815);
-
-        // Add a new document with a generated ID
-        db.collection("users")
-                .add(user)
-                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                    @Override
-                    public void onSuccess(DocumentReference documentReference) {
-                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "Error adding document", e);
-                    }
-                });
-
 
         super.onCreate(bundle);
         setContentView(R.layout.main_layout);
@@ -245,15 +230,33 @@ public class MainActivity extends AppCompatActivity {
                     // Creamos el LinearLayout donde se mostrará la información sobre este punto de conexión
                     LinearLayout ll_endpoint = new LinearLayout(activity);
                     ll_endpoint.setOrientation(LinearLayout.HORIZONTAL);
+                    ll_endpoint.setBackgroundColor(Color.rgb(
+                            endpointId.charAt(0)+endpointId.charAt(1),endpointId.charAt(0)+endpointId.charAt(2),endpointId.charAt(0)+endpointId.charAt(3)));
+                    ll_endpoint.getBackground().setAlpha(200);
                     TextView text_view = new TextView(activity);
                     text_view.setText(endpointId + ": ");
                     text_view.setTextSize(TypedValue.COMPLEX_UNIT_PT, 15);
+                    text_view.setGravity(Gravity.CENTER_VERTICAL);
+                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT);
+                    float density = getResources().getDisplayMetrics().density;
+                    params.setMargins((int) (15*density),0,0,0);
+                    text_view.setLayoutParams(params);
                     ll_endpoint.addView(text_view);
                     ImageView pattern_view = new ImageView(activity);
                     pattern_view.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        pattern_view.setForegroundGravity(Gravity.CENTER_HORIZONTAL);
+                    }
+                    params = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT);
+                    pattern_view.setLayoutParams(params);
                     pattern_view.setAdjustViewBounds(true);
                     pattern_view.setMaxHeight(500);
                     ll_endpoint.addView(pattern_view);
+
 
                     // Añadimos el LinearLayout a la UI
                     UIModule.addEndpointLayout(activity, ll_endpoint);
