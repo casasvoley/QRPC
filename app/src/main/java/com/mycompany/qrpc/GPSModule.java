@@ -4,11 +4,17 @@ import static androidx.core.app.ActivityCompat.requestPermissions;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Build;
+import android.provider.Settings;
 import android.util.Log;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 
 import com.google.android.gms.location.CurrentLocationRequest;
@@ -30,6 +36,9 @@ public class GPSModule {
     private static final double DEFAULT_UPDATE_INTERVAL = 1;
     private static final double MAX_LOCATION_LIFETIME = 0;
     private static final int PERMISSIONS_FINE_LOCATION = 99;
+
+
+    private final double sensibility = 7E-5;
 
     // Cliente del proveedor de ubicación
     private FusedLocationProviderClient fusedLocationProviderClient;
@@ -62,6 +71,7 @@ public class GPSModule {
         map.put("latitude", null);
         map.put("longitude_speed", null);
         map.put("latitude_speed", null);
+        map.put("has_speed", 0.0);
         this.coordinates = map;
 
         // Establecemos las propiedades de las peticiones de ubicación (CurrentLocalizationRequest)
@@ -111,6 +121,12 @@ public class GPSModule {
                         requestPermissions(activity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
                     }
                 }
+
+                if (!canGetLocation()){
+                    showSettingsAlert();
+                    timer.cancel();
+                }
+
                 // Solicitamos una actualización de la ubicación actual
                 fusedLocationProviderClient.getCurrentLocation(currentLocationRequest, cancellationSource.getToken()).addOnSuccessListener(gpsListener);
             }
@@ -120,6 +136,54 @@ public class GPSModule {
 
     // Detiene las actualizaciones de ubicación
     public void stopLocationUpdates(){
-        timer.cancel();
+        if (timer!=null){timer.cancel();}
     }
+
+    public boolean canGetLocation() {
+        boolean result = true;
+        LocationManager lm;
+        boolean gpsEnabled = false;
+        boolean networkEnabled = false;
+
+        lm = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
+
+        // exceptions will be thrown if provider is not permitted.
+        try {
+            gpsEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        } catch (Exception ignored) {
+        }
+
+        try {
+            networkEnabled = lm
+                    .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        } catch (Exception ignored) {
+        }
+
+        return gpsEnabled && networkEnabled;
+    }
+
+    public void showSettingsAlert() {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
+
+        // Setting Dialog Title
+        alertDialog.setTitle("Active los servicios de ubicación");
+
+        // Setting Dialog Message
+        alertDialog.setMessage("La aplicación necesita tener acceso a la ubicación del dispositivo para funcionar correctamente.");
+
+        // On pressing Settings button
+        alertDialog.setPositiveButton(
+                activity.getResources().getString(R.string.button_ok),
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent(
+                                Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                        activity.startActivity(intent);
+                    }
+                });
+
+        activity.runOnUiThread(alertDialog::show);
+    }
+
+    public double getSensibility(){return sensibility;}
 }

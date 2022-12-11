@@ -27,4 +27,5 @@
 
     <string name="game_score">%1$d : %2$d</string>
     <string name="scrollview_name">ScrollView</string>
+    <string name="button_ok">Vale</string>
 </resources>
