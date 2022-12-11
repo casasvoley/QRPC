@@ -3,6 +3,7 @@ package com.mycompany.qrpc;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -17,6 +18,8 @@ import java.util.Comparator;
 import java.util.Map;
 
 public class UIModule {
+
+    private static final String TAG = "QRPC";
 
     // HashMap con los iconos de los patrones
     private static Map<String,Integer> patterns = Map.ofEntries(
@@ -139,12 +142,12 @@ public class UIModule {
                 }
             });
 
-            LinearLayout linearLayout = new LinearLayout(activity);
+            mainLayout.removeAllViews();
             for (int i = 0; i < numEndpoints; i++) {
                 LinearLayout endpointLayout = endpoints.get(i).getEndpointlayout();
-                linearLayout.addView(endpointLayout);
+                Log.i(TAG, "Endpoint order: "+ endpoints.get(i).getDistance());
+                mainLayout.addView(endpointLayout);
             }
-            mainLayout = linearLayout;
         }
     }
 }

@@ -157,6 +157,9 @@ public class CommunicationModule {
     // Devuelve la lista de puntos de conexión
     public ArrayList<Endpoint> getEndpoints() {return endpoints;}
 
+    // Devuelve la lista de puntos de conexión con conexión aún no establecida
+    public ArrayList<Endpoint> getTempEndpoints() {return tempEndpoints;}
+
     // Elimina un punto de conexión
     public void removeEndpoint(String endpointId){
         Endpoint endpoint = null;
@@ -171,6 +174,17 @@ public class CommunicationModule {
     // Elimina un punto de conexión temporal
     public void removeTempEndpoint(Endpoint e){
         tempEndpoints.remove(e);
+    }
+
+    // Elimina un punto de conexión temporal
+    public void removeTempEndpoint(String endpointId){
+        Endpoint endpoint = null;
+        for (Endpoint e : tempEndpoints){
+            if (e.getId().equals(endpointId)){
+                endpoint = e;
+            }
+        }
+        tempEndpoints.remove(endpoint);
     }
 
     // Comprueba si hay puntos de conexión con conexiones establecidas
