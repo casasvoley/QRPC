@@ -6,7 +6,8 @@ public class PatternLogicModule {
 
     private final static int error = 25;
 
-    public static String calculateAtomicPattern(Map<String,Double> targetInfo, Map<String,Double> referenceInfo) {
+    public static String calculateAtomicPattern(Map<String,Double> targetInfo,
+                                                Map<String,Double> referenceInfo) {
 
         // Comprobamos que no hay valores nulos en los mapas
         if (targetInfo.containsValue(null) || referenceInfo.containsValue(null)) return "";
@@ -23,10 +24,8 @@ public class PatternLogicModule {
 
         // Ángulo que debe rotar v1 para coincidir en dirección y sentido con vd
         double alpha = calculateAngle(vd,v1);
-        System.out.println("alpha=" + alpha);
         // Ángulo que debe rotar v2 para coincidir en dirección y sentido con vd
         double beta = calculateAngle(vd,v2);
-        System.out.println("beta=" + beta);
 
         // Signo de alpha
         int alpha_sign = calculateRotationSign(vd, v1);
@@ -51,8 +50,6 @@ public class PatternLogicModule {
                 beta_sign = alpha_sign;
             }
         }
-        System.out.println("alpha_sign="+alpha_sign);
-        System.out.println("beta_sign="+beta_sign);
 
         // Inicio de la determinación del patrón
         if (alpha_sign == beta_sign) {

@@ -8,7 +8,6 @@ import androidx.annotation.NonNull;
 
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
-import com.google.android.gms.nearby.connection.ConnectionInfo;
 import com.google.android.gms.nearby.connection.ConnectionLifecycleCallback;
 import com.google.android.gms.nearby.connection.ConnectionsClient;
 import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo;
@@ -59,18 +58,22 @@ public class CommunicationModule {
             new EndpointDiscoveryCallback() {
 
                 @Override
-                public void onEndpointFound(@NonNull String endpointId, @NonNull DiscoveredEndpointInfo info) {
+                public void onEndpointFound(@NonNull String endpointId,
+                                            @NonNull DiscoveredEndpointInfo info) {
                     Log.i(TAG, "onEndpointFound: Punto de conexión encontrado");
 
                     // Pedimos conectar al punto de conexión encontrado
-                    connectionsClient.requestConnection(installationId, endpointId, connectionLifecycleCallback);
+                    connectionsClient.requestConnection(installationId, endpointId,
+                            connectionLifecycleCallback);
                 }
 
                 @Override
                 public void onEndpointLost(@NonNull String endpointId) {}
             };
 
-    public CommunicationModule(Activity activity, String installationId, PayloadCallback payloadCallback, ConnectionLifecycleCallback connectionLifecycleCallback){
+    public CommunicationModule(Activity activity, String installationId,
+                               PayloadCallback payloadCallback,
+                               ConnectionLifecycleCallback connectionLifecycleCallback){
         // Creamos un cliente de conexiones
         this.connectionsClient = Nearby.getConnectionsClient(activity);
         this.installationId = installationId;
@@ -136,12 +139,8 @@ public class CommunicationModule {
         connectionsClient.acceptConnection(endpointId, payloadCallback);
     }
 
-    // Añade un nuevo punto de conexión con una conexión establecida
-    public void addEndpoint(String endpointId, String endpointDevId, LinearLayout ll_endpoint) {
-        endpoints.add(new Endpoint(endpointId, endpointDevId, ll_endpoint));
-    }
-
-    // Convierte un punto de conexión de temporal a permanente porque ya ha se establecido una conexión
+    // Convierte un punto de conexión de temporal a permanente porque
+    // ya ha se establecido una conexión
     public void saveEndpoint(String endpointId, LinearLayout ll_endpoint) {
         Endpoint endpoint = getTempEndpoint(endpointId);
         endpoint.setEndpointlayout(ll_endpoint);

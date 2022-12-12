@@ -5,10 +5,10 @@ import android.widget.LinearLayout;
 public class Endpoint{
 
     // ID de punto de conexión
-    private String id;
+    private final String id;
 
     // ID de dispositivo
-    private String devId;
+    private final String devId;
 
     // LinearLayout de la UI donde se muestra información sobre este punto de conexión
     private LinearLayout layout;

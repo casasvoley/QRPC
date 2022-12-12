@@ -2,14 +2,11 @@ package com.mycompany.qrpc;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.graphics.BitmapFactory;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -22,7 +19,7 @@ public class UIModule {
     private static final String TAG = "QRPC";
 
     // HashMap con los iconos de los patrones
-    private static Map<String,Integer> patterns = Map.ofEntries(
+    private static final Map<String,Integer> patterns = Map.ofEntries(
             new AbstractMap.SimpleEntry<String,Integer>("↑_+", R.drawable.pattern_1),
             new AbstractMap.SimpleEntry<String,Integer>("↑_-", R.drawable.pattern_2),
             new AbstractMap.SimpleEntry<String,Integer>("↑↑_{+0}", R.drawable.pattern_3),
@@ -80,12 +77,6 @@ public class UIModule {
         setButtonState(activity, false);
     }
 
-    // Muestra al usuario un mensaje de estado
-    //public static void setStatusText(Activity activity,String text) {
-    //    TextView statusText = activity.findViewById(R.id.status);
-    //    statusText.setText(text);
-    //}
-
     // Activa y desactiva los botones de la GUI en función de si la conexión está activada
     public static void setButtonState(Activity activity, boolean connected) {
         Button connectButton = activity.findViewById(R.id.connect);
@@ -102,25 +93,11 @@ public class UIModule {
 
     // Actualiza los valores de el LinearLayout de un punto de conexión
     @SuppressLint("UseCompatLoadingForDrawables")
-    public static void updateEndpointLayout(Activity activity, LinearLayout endpointLayout, String pattern){
+    public static void updateEndpointLayout(Activity activity,
+                                            LinearLayout endpointLayout, String pattern){
         ImageView pattern_view = (ImageView) endpointLayout.getChildAt(1);
         pattern_view.setImageDrawable(activity.getResources().getDrawable(patterns.get(pattern)));
     }
-    /*public static void updateEndpointLayout(Activity activity, LinearLayout endpoint,
-                                            double longitude, double latitude,
-                                            double longitude_speed, double latitude_speed) {
-        TextView tv_lat = (TextView) endpoint.getChildAt(0);
-        tv_lat.setText("Lon: " + String.valueOf(longitude));
-        TextView tv_lon = (TextView) endpoint.getChildAt(1);
-        tv_lon.setText("Lat: " + String.valueOf(latitude));
-
-
-        TextView tv_x_velocity = (TextView) endpoint.getChildAt(2);
-        tv_x_velocity.setText("X: " + String.valueOf(longitude_speed));
-
-        TextView tv_y_velocity = (TextView) endpoint.getChildAt(3);
-        tv_y_velocity.setText("Y: " + String.valueOf(latitude_speed));
-    }*/
 
     // Elimina el LinearLayout de un punto de conexión que se ha desconectado
     public static void removeEndpointLayout(Activity activity, LinearLayout endpointLayout){
@@ -131,21 +108,19 @@ public class UIModule {
     // Actualiza el orden en el que aparecen los puntos de conexión en la UI
     public static void updateEndpointOrder(Activity activity, ArrayList<Endpoint> endpoints){
 
+        // Comprobamos si hay más de un dispositivo conectado
         if (endpoints.size() > 1) {
             LinearLayout mainLayout = activity.findViewById(R.id.linear_layout);
             int numEndpoints = endpoints.size();
 
-            Collections.sort(endpoints, new Comparator<Endpoint>() {
-                @Override
-                public int compare(Endpoint o1, Endpoint o2) {
-                    return Float.compare(o1.getDistance(), o2.getDistance());
-                }
-            });
+            // Ordenamos los dispositivos de menor a mayor distancia
+            Collections.sort(endpoints,
+                    (o1, o2) -> Float.compare(o1.getDistance(), o2.getDistance()));
 
+            // Los colocamos en la interfaz en ese orden
             mainLayout.removeAllViews();
             for (int i = 0; i < numEndpoints; i++) {
                 LinearLayout endpointLayout = endpoints.get(i).getEndpointlayout();
-                Log.i(TAG, "Endpoint order: "+ endpoints.get(i).getDistance());
                 mainLayout.addView(endpointLayout);
             }
         }

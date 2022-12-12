@@ -37,7 +37,7 @@ public class GPSModule {
     private static final double MAX_LOCATION_LIFETIME = 0;
     private static final int PERMISSIONS_FINE_LOCATION = 99;
 
-
+    // Sensibilidad para considerar un cambio de coordenadas como un movimiento voluntario
     private final double sensibility = 7E-5;
 
     // Cliente del proveedor de ubicación
@@ -75,7 +75,8 @@ public class GPSModule {
         this.coordinates = map;
 
         // Establecemos las propiedades de las peticiones de ubicación (CurrentLocalizationRequest)
-        currentLocationRequest = new CurrentLocationRequest.Builder().setMaxUpdateAgeMillis((long) (1000 * MAX_LOCATION_LIFETIME)).build();
+        currentLocationRequest = new CurrentLocationRequest.Builder()
+                .setMaxUpdateAgeMillis((long) (1000 * MAX_LOCATION_LIFETIME)).build();
 
         // Listener que se ejecuta cuando el dispositivo recibe una actualización de su ubicación
         this.gpsListener = listener;
@@ -84,10 +85,14 @@ public class GPSModule {
         this.fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(activity);
 
         // Comprobamos si tenemos los permisos de ubicación
-        if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(activity,
+                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
             // Pedimos los permisos ya que no los tenemos
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                requestPermissions(activity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
+                requestPermissions(activity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                        PERMISSIONS_FINE_LOCATION);
             }
         }
     }
@@ -122,7 +127,8 @@ public class GPSModule {
                     }
                 }
 
-                if (!canGetLocation()){
+                // Si no está la ubicación activada, pedimos al usario que la active
+                if (!isLocationActivated()){
                     showSettingsAlert();
                     timer.cancel();
                 }
@@ -139,15 +145,14 @@ public class GPSModule {
         if (timer!=null){timer.cancel();}
     }
 
-    public boolean canGetLocation() {
-        boolean result = true;
+    // Comprueba si el usuario tiene los servicios de ubicación activados
+    public boolean isLocationActivated() {
         LocationManager lm;
         boolean gpsEnabled = false;
         boolean networkEnabled = false;
 
         lm = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
 
-        // exceptions will be thrown if provider is not permitted.
         try {
             gpsEnabled = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
         } catch (Exception ignored) {
@@ -162,16 +167,17 @@ public class GPSModule {
         return gpsEnabled && networkEnabled;
     }
 
+    // Muestra al usuario una alerta para activar los servicios de ubicación
     public void showSettingsAlert() {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
 
-        // Setting Dialog Title
+        // Título de la alerta
         alertDialog.setTitle("Active los servicios de ubicación");
 
-        // Setting Dialog Message
+        // Texto de la alerta
         alertDialog.setMessage("La aplicación necesita tener acceso a la ubicación del dispositivo para funcionar correctamente.");
 
-        // On pressing Settings button
+        // Botón de la alerta
         alertDialog.setPositiveButton(
                 activity.getResources().getString(R.string.button_ok),
                 new DialogInterface.OnClickListener() {
@@ -181,9 +187,10 @@ public class GPSModule {
                         activity.startActivity(intent);
                     }
                 });
-
+        // Mostramos la alerta al usuario
         activity.runOnUiThread(alertDialog::show);
     }
 
+    // Devuelve la sensibilidad del módulo GPS
     public double getSensibility(){return sensibility;}
 }
