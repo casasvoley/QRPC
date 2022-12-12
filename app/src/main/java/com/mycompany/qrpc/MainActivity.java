@@ -93,6 +93,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_CODE = 1;
 
+    // Período de actualización del orden de los
+    private final int DEVICE_ORDER_UPDATE_TIME = 2;
+
     // Módulo de GPS
     private GPSModule gpsModule;
 
@@ -108,17 +111,7 @@ public class MainActivity extends AppCompatActivity {
     // Timer que actualiza el orden de los dispositivos en pantalla periódicamente
     private Timer timer;
     // Tarea que ejecuta el timer
-    private TimerTask timerTask = new TimerTask() {
-        @Override
-        public void run() {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    UIModule.updateEndpointOrder(activity, communicationModule.getEndpoints());
-                }
-            });
-        }
-    };
+    private TimerTask timerTask;
 
     @SuppressLint("InvalidWakeLockTag")
     @Override
@@ -484,7 +477,18 @@ public class MainActivity extends AppCompatActivity {
 
         // Iniciamos el timer que actualiza el orden de los dispositivos en pantalla periódicamente
         timer = new Timer();
-        timer.scheduleAtFixedRate(timerTask, 0, 2000);
+        timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        UIModule.updateEndpointOrder(activity, communicationModule.getEndpoints());
+                    }
+                });
+            }
+        };
+        timer.scheduleAtFixedRate(timerTask, 0, DEVICE_ORDER_UPDATE_TIME*1000);
     }
 
     // Desactiva la comunicación y el cálculo de la ubicación

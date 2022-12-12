@@ -38,7 +38,7 @@ public class GPSModule {
     private static final int PERMISSIONS_FINE_LOCATION = 99;
 
     // Sensibilidad para considerar un cambio de coordenadas como un movimiento voluntario
-    private final double sensibility = 7E-5;
+    private final double sensibility = 4E-5;
 
     // Cliente del proveedor de ubicación
     private FusedLocationProviderClient fusedLocationProviderClient;

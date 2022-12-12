@@ -4,7 +4,7 @@ import java.util.Map;
 
 public class PatternLogicModule {
 
-    private final static int error = 25;
+    private final static int error = 20;
 
     public static String calculateAtomicPattern(Map<String,Double> targetInfo,
                                                 Map<String,Double> referenceInfo) {
