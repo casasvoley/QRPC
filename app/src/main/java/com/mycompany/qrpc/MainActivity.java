@@ -331,12 +331,11 @@ public class MainActivity extends AppCompatActivity {
                     coordinates.put("latitude_speed", null);
                     coordinates.put("has_speed", 0.0);
                     gpsModule.setCoordinates(coordinates);
-                // Si la diferencia entre las nuevas coordenadas y las guardadas es mayor
-                // que el margen de sensibilidad, las sustuitimos
+                // Si el módulo del vecotr de desplazamiento es mayor
+                // que el margen de sensibilidad,  consideramos las coordenadas como válidas
                 } else if (
-                        Math.abs(coordinates.get("longitude") - pastCoordinates.get("longitude"))
-                                > gpsModule.getSensibility()
-                        || Math.abs(coordinates.get("latitude") - pastCoordinates.get("latitude"))
+                        Math.sqrt(Math.pow((coordinates.get("longitude") - pastCoordinates.get("longitude")), 2)
+                                + Math.pow(coordinates.get("latitude") - pastCoordinates.get("latitude"), 2))
                                 > gpsModule.getSensibility()) {
                     coordinates.put("longitude_speed",
                             coordinates.get("longitude") - pastCoordinates.get("longitude"));
