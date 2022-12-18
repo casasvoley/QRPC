@@ -34,7 +34,7 @@ public class GPSModule {
     private static final String TAG = "QRPC";
 
     // Constantes de ubicación
-    private static final double DEFAULT_UPDATE_INTERVAL = 2.5;
+    private static final double DEFAULT_UPDATE_INTERVAL = 2.2;
     private static final double MAX_LOCATION_LIFETIME = 0;
     private static final int PERMISSIONS_FINE_LOCATION = 99;
 
@@ -125,21 +125,27 @@ public class GPSModule {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                    // Pedimos los permisos ya que no los tenemos
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        requestPermissions(activity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
+                activity.runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                            // Pedimos los permisos ya que no los tenemos
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                requestPermissions(activity, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
+                            }
+                        }
+
+                        // Si no está la ubicación activada, pedimos al usario que la active
+                        if (!isLocationActivated()){
+                            showSettingsAlert();
+                            timer.cancel();
+                        }
+
+                        // Solicitamos una actualización de la ubicación actual
+                        fusedLocationProviderClient.getCurrentLocation(currentLocationRequest, cancellationSource.getToken()).addOnSuccessListener(gpsListener);
                     }
-                }
-
-                // Si no está la ubicación activada, pedimos al usario que la active
-                if (!isLocationActivated()){
-                    showSettingsAlert();
-                    timer.cancel();
-                }
-
-                // Solicitamos una actualización de la ubicación actual
-                fusedLocationProviderClient.getCurrentLocation(currentLocationRequest, cancellationSource.getToken()).addOnSuccessListener(gpsListener);
+                });
             }
         }, 0, (long) (DEFAULT_UPDATE_INTERVAL*1000));
 
