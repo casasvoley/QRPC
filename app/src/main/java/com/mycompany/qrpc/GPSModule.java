@@ -23,6 +23,7 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -33,7 +34,7 @@ public class GPSModule {
     private static final String TAG = "QRPC";
 
     // Constantes de ubicación
-    private static final double DEFAULT_UPDATE_INTERVAL = 1;
+    private static final double DEFAULT_UPDATE_INTERVAL = 2.5;
     private static final double MAX_LOCATION_LIFETIME = 0;
     private static final int PERMISSIONS_FINE_LOCATION = 99;
 
@@ -50,7 +51,9 @@ public class GPSModule {
     private Activity activity;
 
     // Ubicación actual
-    private Map<String,Double> coordinates;
+    private ArrayList<Map<String,Double>> coordinates;
+
+    private Map<String,Double> currentCoordinates;
 
     // Timer
     private Timer timer;
@@ -72,7 +75,7 @@ public class GPSModule {
         map.put("longitude_speed", null);
         map.put("latitude_speed", null);
         map.put("has_speed", 0.0);
-        this.coordinates = map;
+        this.coordinates = new ArrayList<Map<String,Double>>();
 
         // Establecemos las propiedades de las peticiones de ubicación (CurrentLocalizationRequest)
         currentLocationRequest = new CurrentLocationRequest.Builder()
@@ -83,7 +86,6 @@ public class GPSModule {
 
         // Creamos un cliente del proveedor de ubicación
         this.fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(activity);
-
         // Comprobamos si tenemos los permisos de ubicación
         if (ActivityCompat.checkSelfPermission(activity,
                 Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
@@ -98,14 +100,17 @@ public class GPSModule {
     }
 
     // Devuelve las coordenadas guardadas
-    public Map<String, Double> getCoordinates() {
+    public ArrayList<Map<String, Double>> getCoordinates() {
         return coordinates;
     }
 
     // Actualiza las coordenadas guardadas
     public void setCoordinates(Map<String,Double> m) {
-        this.coordinates = m;
+        this.coordinates.add(m);
     }
+
+    // TEMPORAL
+    public void deleteCoordinates() { this.coordinates = new ArrayList<Map<String,Double>>(); }
 
     // Inicia las actualizaciones de ubicación
     public void startLocationUpdates(Activity activity) {
@@ -193,4 +198,12 @@ public class GPSModule {
 
     // Devuelve la sensibilidad del módulo GPS
     public double getSensibility(){return sensibility;}
+
+    public Map<String, Double> getCurrentCoordinates() {
+        return currentCoordinates;
+    }
+
+    public void setCurrentCoordinates(Map<String, Double> currentCoordinates) {
+        this.currentCoordinates = currentCoordinates;
+    }
 }

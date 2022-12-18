@@ -149,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     // Calculamos la distancia al punto de conexión y la guardamos
-                    Map<String, Double> targetInfo = gpsModule.getCoordinates();
+                    Map<String, Double> targetInfo = gpsModule.getCurrentCoordinates();
                     float[] distance = {0};
                     if (!referenceInfo.containsValue(null)
                             && !targetInfo.containsValue(null)) {
@@ -163,7 +163,7 @@ public class MainActivity extends AppCompatActivity {
                     LinearLayout ll = e.getEndpointlayout();
                     if (ll != null){
                         String pattern = PatternLogicModule
-                                .calculateAtomicPattern(gpsModule.getCoordinates(), referenceInfo);
+                                .calculateAtomicPattern(gpsModule.getCurrentCoordinates(), referenceInfo);
                         if (!pattern.equals("")) {
                             // Comprobamos si el patrón es distinto al último calculado
                             String lastPattern = e.getLastPattern();
@@ -312,7 +312,7 @@ public class MainActivity extends AppCompatActivity {
         // Instanciamos módulo de GPS
         gpsModule = new GPSModule(this, location -> {
             if (location != null) {
-                Log.i(TAG, "onLocationResult: Ubicación medida satisfactoriamente" );
+                Log.i(TAG, "onLocationResult: " + location.getLatitude() + ", " + location.getLongitude() );
 
                 // Convertimos las coordenadas en un Map
                 Map<String, Double> coordinates = new HashMap<String, Double>();
@@ -320,60 +320,42 @@ public class MainActivity extends AppCompatActivity {
                 coordinates.put("latitude", location.getLatitude());
 
                 // Accedemos a las coordenadas que tiene guardadas el GPSModule
-                Map<String, Double> pastCoordinates = gpsModule.getCoordinates();
+                ArrayList<Map<String, Double>> pastCoordinates = gpsModule.getCoordinates();
 
                 // Si las coordenadas guardadas son nulas
-                if (pastCoordinates.get("longitude") == null
-                        && pastCoordinates.get("latitude") == null) {
-                    // Sustituimos la longitud y la latitud por las nuevas
-                    // y dejamos las velocidades como nulas
-                    coordinates.put("longitude_speed", null);
-                    coordinates.put("latitude_speed", null);
-                    coordinates.put("has_speed", 0.0);
-                    gpsModule.setCoordinates(coordinates);
+//                if (pastCoordinates.isEmpty()) {
+//                    // Sustituimos la longitud y la latitud por las nuevas
+//                    // y dejamos las velocidades como nulas
+//                    coordinates.put("longitude_speed", null);
+//                    coordinates.put("latitude_speed", null);
+//                    coordinates.put("has_speed", 0.0);
+//                    gpsModule.setCoordinates(coordinates);
                 // Si el módulo del vecotr de desplazamiento es mayor
                 // que el margen de sensibilidad,  consideramos las coordenadas como válidas
-                } else if (
-                        Math.sqrt(Math.pow((coordinates.get("longitude") - pastCoordinates.get("longitude")), 2)
-                                + Math.pow(coordinates.get("latitude") - pastCoordinates.get("latitude"), 2))
-                                > gpsModule.getSensibility()) {
-                    coordinates.put("longitude_speed",
-                            coordinates.get("longitude") - pastCoordinates.get("longitude"));
-                    coordinates.put("latitude_speed",
-                            coordinates.get("latitude") - pastCoordinates.get("latitude"));
-                    coordinates.put("has_speed", 1.0);
-                    gpsModule.setCoordinates(coordinates);
-                // Si no hay una velocidad guardada y la actual es distinta de 0, la guardamos
-                } else if (pastCoordinates.get("has_speed") == 0.0
-                        && (coordinates.get("longitude") - pastCoordinates.get("longitude"))!=0.0
-                        && (coordinates.get("latitude") - pastCoordinates.get("latitude"))!=0.0){
-                    coordinates.put("longitude_speed",
-                            coordinates.get("longitude") - pastCoordinates.get("longitude"));
-                    coordinates.put("latitude_speed",
-                            coordinates.get("latitude") - pastCoordinates.get("latitude"));
-                    coordinates.put("has_speed", 1.0);
-                    gpsModule.setCoordinates(coordinates);
-                // Si no hay una velocidad guardada, usamos el encaramiento
-                } else if (pastCoordinates.get("has_speed") == 0.0){
+//                } else {
                     coordinates.put("longitude_speed", (double) Math.sin(location.getBearing()));
                     coordinates.put("latitude_speed", (double) Math.cos(location.getBearing()));
                     coordinates.put("has_speed", 1.0);
                     gpsModule.setCoordinates(coordinates);
-                // Si no, nos quedamos con la velocidad que teníamos guaradada
-                } else {
-                    coordinates.put("longitude_speed", pastCoordinates.get("longitude_speed"));
-                    coordinates.put("latitude_speed", pastCoordinates.get("latitude_speed"));
-                    coordinates.put("has_speed", pastCoordinates.get("has_speed"));
-                    gpsModule.setCoordinates(coordinates);
-                }
+//                }
 
                 // Enviamos nuestra ubicación como un Map si hay conexiones establecidas
-                if (communicationModule.isThereConnections()) {
-                    try {
-                        communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
-                    } catch (IOException e) {
-                        Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+                ArrayList<Map<String,Double>> coordinatesArray = gpsModule.getCoordinates();
+                if(coordinatesArray.size()==3) {
+                    Map<String,Double> currentCoordinates = new HashMap<>();
+                    currentCoordinates.put("longitude", (coordinatesArray.get(0).get("longitude") + coordinatesArray.get(1).get("longitude") + coordinatesArray.get(2).get("longitude"))/3);
+                    currentCoordinates.put("latitude", (coordinatesArray.get(0).get("latitude") + coordinatesArray.get(1).get("latitude") + coordinatesArray.get(2).get("latitude"))/3);
+                    currentCoordinates.put("longitude_speed", (coordinatesArray.get(0).get("longitude_speed") + coordinatesArray.get(1).get("longitude_speed") + coordinatesArray.get(2).get("longitude_speed"))/3);
+                    currentCoordinates.put("latitude_speed", (coordinatesArray.get(0).get("latitude_speed") + coordinatesArray.get(1).get("latitude_speed") + coordinatesArray.get(2).get("latitude_speed"))/3);
+                    if (communicationModule.isThereConnections()) {
+                        try {
+                            communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
+                            Log.i(TAG, "Coordenadas enviadas");
+                        } catch (IOException e) {
+                            Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
+                        }
                     }
+                    gpsModule.deleteCoordinates();
                 }
             }
         });
