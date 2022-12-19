@@ -50,9 +50,10 @@ public class GPSModule {
     // Actividad principal
     private Activity activity;
 
-    // Ubicación actual
+
     private ArrayList<Map<String,Double>> coordinates;
 
+    // Ubicación actual
     private Map<String,Double> currentCoordinates;
 
     // Timer
@@ -106,7 +107,7 @@ public class GPSModule {
 
     // Actualiza las coordenadas guardadas
     public void setCoordinates(Map<String,Double> m) {
-        this.coordinates.add(m);
+        if(!this.coordinates.contains(m)) this.coordinates.add(m);
     }
 
     // TEMPORAL

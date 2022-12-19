@@ -349,12 +349,13 @@ public class MainActivity extends AppCompatActivity {
                     currentCoordinates.put("latitude_speed", (coordinatesArray.get(0).get("latitude_speed") + coordinatesArray.get(1).get("latitude_speed") + coordinatesArray.get(2).get("latitude_speed"))/3);
                     if (communicationModule.isThereConnections()) {
                         try {
-                            communicationModule.sendPayload(Payload.fromBytes(serialize(coordinates)));
+                            communicationModule.sendPayload(Payload.fromBytes(serialize(currentCoordinates)));
                             Log.i(TAG, "Coordenadas enviadas");
                         } catch (IOException e) {
                             Log.e(TAG, "onLocationResult: Error al serializar las coordenadas");
                         }
                     }
+                    gpsModule.setCurrentCoordinates(currentCoordinates);
                     gpsModule.deleteCoordinates();
                 }
             }
